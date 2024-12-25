@@ -6,7 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
+import com.hp77.linkstash.util.Logger
 import androidx.core.app.NotificationCompat
 import com.hp77.linkstash.MainActivity
 import androidx.hilt.work.HiltWorker
@@ -31,27 +31,27 @@ class ReminderWorker @AssistedInject constructor(
     }
 
     override suspend fun doWork(): Result {
-        Log.d("ReminderWorker", "Starting doWork()")
+        Logger.d("ReminderWorker", "Starting doWork()")
         val linkId = inputData.getString(LINK_ID_KEY)
         val title = inputData.getString(LINK_TITLE_KEY)
         val url = inputData.getString(LINK_URL_KEY)
 
-        Log.d("ReminderWorker", "Received data - linkId: $linkId, title: $title, url: $url")
+        Logger.d("ReminderWorker", "Received data - linkId: $linkId, title: $title, url: $url")
 
         if (linkId == null || url == null) {
-            Log.e("ReminderWorker", "Missing required data")
+            Logger.e("ReminderWorker", "Missing required data")
             return Result.failure()
         }
 
         createNotificationChannel()
         showNotification(title ?: "Link Reminder", url)
 
-        Log.d("ReminderWorker", "Work completed successfully")
+        Logger.d("ReminderWorker", "Work completed successfully")
         return Result.success()
     }
 
     private fun createNotificationChannel() {
-        Log.d("ReminderWorker", "Creating notification channel")
+        Logger.d("ReminderWorker", "Creating notification channel")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Link Reminders"
             val descriptionText = "Notifications for link reminders"
@@ -64,20 +64,20 @@ class ReminderWorker @AssistedInject constructor(
             
             val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
-            Log.d("ReminderWorker", "Notification channel created with importance: $importance")
+            Logger.d("ReminderWorker", "Notification channel created with importance: $importance")
         } else {
-            Log.d("ReminderWorker", "Skipping notification channel creation for older Android versions")
+            Logger.d("ReminderWorker", "Skipping notification channel creation for older Android versions")
         }
     }
 
     private fun showNotification(title: String, url: String) {
-        Log.d("ReminderWorker", "Preparing to show notification - Title: $title, URL: $url")
+        Logger.d("ReminderWorker", "Preparing to show notification - Title: $title, URL: $url")
         try {
             val intent = Intent(appContext, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 data = android.net.Uri.parse(url)
             }
-            Log.d("ReminderWorker", "Created intent with URL: ${intent.data}")
+            Logger.d("ReminderWorker", "Created intent with URL: ${intent.data}")
 
             val pendingIntent = PendingIntent.getActivity(
                 appContext,
@@ -85,7 +85,7 @@ class ReminderWorker @AssistedInject constructor(
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            Log.d("ReminderWorker", "Created PendingIntent")
+            Logger.d("ReminderWorker", "Created PendingIntent")
 
             val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -96,13 +96,13 @@ class ReminderWorker @AssistedInject constructor(
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .build()
-            Log.d("ReminderWorker", "Built notification with high priority")
+            Logger.d("ReminderWorker", "Built notification with high priority")
 
             val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(NOTIFICATION_ID, notification)
-            Log.d("ReminderWorker", "Notification sent successfully")
+            Logger.d("ReminderWorker", "Notification sent successfully")
         } catch (e: Exception) {
-            Log.e("ReminderWorker", "Error showing notification", e)
+            Logger.e("ReminderWorker", "Error showing notification", e)
         }
     }
 }

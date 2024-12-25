@@ -1,7 +1,6 @@
 package com.hp77.linkstash.util
 
 import android.content.Context
-import android.util.Log
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -23,7 +22,7 @@ class ReminderManager @Inject constructor(
         link.reminderTime?.let { reminderTime ->
             val currentTime = System.currentTimeMillis()
             val delay = reminderTime - currentTime
-            Log.d("ReminderManager", """
+            Logger.d("ReminderManager", """
                 Scheduling reminder:
                 - Link ID: ${link.id}
                 - Title: ${link.title}
@@ -34,12 +33,12 @@ class ReminderManager @Inject constructor(
             """.trimIndent())
 
             if (delay <= 0) {
-                Log.w("ReminderManager", "Skipping reminder as delay is not positive")
+                Logger.w("ReminderManager", "Skipping reminder as delay is not positive")
                 return@let
             }
 
             if (delay > 2_592_000_000) { // 30 days in milliseconds
-                Log.w("ReminderManager", "Delay is more than 30 days, this might be unreliable on some devices")
+                Logger.w("ReminderManager", "Delay is more than 30 days, this might be unreliable on some devices")
             }
 
             val inputData = Data.Builder()
@@ -58,10 +57,10 @@ class ReminderManager @Inject constructor(
                 ExistingWorkPolicy.REPLACE,
                 reminderWork
             )
-            Log.d("ReminderManager", "Reminder work request enqueued with ID: ${reminderWork.id}")
+            Logger.d("ReminderManager", "Reminder work request enqueued with ID: ${reminderWork.id}")
             
             // Log the work request details
-            Log.d("ReminderManager", """
+            Logger.d("ReminderManager", """
                 Work request details:
                 - Work ID: ${reminderWork.id}
                 - Initial delay: ${reminderWork.workSpec.initialDelay} ms
@@ -71,17 +70,17 @@ class ReminderManager @Inject constructor(
     }
 
     fun cancelReminder(linkId: String) {
-        Log.d("ReminderManager", "Cancelling reminder for link: $linkId")
+        Logger.d("ReminderManager", "Cancelling reminder for link: $linkId")
         workManager.cancelUniqueWork("reminder_${linkId}")
-        Log.d("ReminderManager", "Cancellation request sent for reminder_$linkId")
+        Logger.d("ReminderManager", "Cancellation request sent for reminder_$linkId")
     }
 
     fun observeReminderStatus(linkId: String): Flow<WorkInfo.State> {
-        Log.d("ReminderManager", "Starting to observe reminder status for link: $linkId")
+        Logger.d("ReminderManager", "Starting to observe reminder status for link: $linkId")
         return workManager.getWorkInfosForUniqueWorkFlow("reminder_${linkId}")
             .map { workInfoList ->
                 val state = workInfoList.firstOrNull()?.state ?: WorkInfo.State.CANCELLED
-                Log.d("ReminderManager", "Current work state for link $linkId: $state")
+                Logger.d("ReminderManager", "Current work state for link $linkId: $state")
                 state
             }
     }

@@ -1,6 +1,6 @@
 package com.hp77.linkstash.presentation.addlink
 
-import android.util.Log
+import com.hp77.linkstash.util.Logger
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -145,14 +145,14 @@ class AddEditLinkViewModel @Inject constructor(
                 // Handled by UI
             }
             is AddEditLinkScreenEvent.OnSetReminder -> {
-                Log.d("AddEditLinkViewModel", "Setting reminder for timestamp: ${event.timestamp}")
+                Logger.d("AddEditLinkViewModel", "Setting reminder for timestamp: ${event.timestamp}")
                 _state.update { it.copy(reminderTime = event.timestamp) }
             }
             AddEditLinkScreenEvent.OnRemoveReminder -> {
-                Log.d("AddEditLinkViewModel", "Removing reminder")
+                Logger.d("AddEditLinkViewModel", "Removing reminder")
                 _state.update { it.copy(reminderTime = null) }
                 state.value.linkId?.let { linkId ->
-                    Log.d("AddEditLinkViewModel", "Cancelling reminder for link: $linkId")
+                    Logger.d("AddEditLinkViewModel", "Cancelling reminder for link: $linkId")
                     reminderManager.cancelReminder(linkId)
                 }
             }
@@ -210,14 +210,14 @@ class AddEditLinkViewModel @Inject constructor(
 
             // Schedule new reminder if set
             if (link.reminderTime != null) {
-                Log.d("AddEditLinkViewModel", "Scheduling reminder for link: ${link.id}, time: ${link.reminderTime}")
+                Logger.d("AddEditLinkViewModel", "Scheduling reminder for link: ${link.id}, time: ${link.reminderTime}")
                 reminderManager.scheduleReminder(link)
                 
                 // Observe reminder status
                 viewModelScope.launch {
                     reminderManager.observeReminderStatus(link.id)
                         .collect { state ->
-                            Log.d("AddEditLinkViewModel", """
+                            Logger.d("AddEditLinkViewModel", """
                                 Reminder status update for link ${link.id}:
                                 - State: $state
                                 - Scheduled time: ${DateUtils.formatDateTime(link.reminderTime)}
