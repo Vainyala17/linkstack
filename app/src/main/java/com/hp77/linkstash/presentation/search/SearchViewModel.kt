@@ -1,0 +1,130 @@
+package com.hp77.linkstash.presentation.search
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.hp77.linkstash.data.preferences.SearchPreferences
+import com.hp77.linkstash.domain.model.Link
+import com.hp77.linkstash.domain.repository.LinkRepository
+import com.hp77.linkstash.domain.repository.TagRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val linkRepository: LinkRepository,
+    private val tagRepository: TagRepository,
+    private val searchPreferences: SearchPreferences
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(SearchScreenState())
+    val state: StateFlow<SearchScreenState> = _state.asStateFlow()
+
+    init {
+        loadTags()
+        loadRecentSearches()
+    }
+
+    private fun loadRecentSearches() {
+        _state.update { it.copy(recentSearches = searchPreferences.getRecentSearches()) }
+    }
+
+    private fun loadTags() {
+        viewModelScope.launch {
+            try {
+                tagRepository.getAllTags().collect { tags ->
+                    _state.update { it.copy(tags = tags) }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
+    private fun toggleFavorite(link: Link) {
+        viewModelScope.launch {
+            try {
+                linkRepository.toggleFavorite(link)
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
+    private fun toggleArchive(link: Link) {
+        viewModelScope.launch {
+            try {
+                linkRepository.toggleArchive(link)
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
+    private fun performSearch(query: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                linkRepository.searchLinks(query).collect { links ->
+                    _state.update { it.copy(
+                        searchResults = links,
+                        isLoading = false
+                    ) }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(
+                    error = e.message,
+                    isLoading = false,
+                    searchResults = emptyList()
+                ) }
+            }
+        }
+    }
+
+    fun onEvent(event: SearchScreenEvent) {
+        when (event) {
+            is SearchScreenEvent.OnSearchQueryChange -> {
+                _state.update { it.copy(searchQuery = event.query) }
+                if (event.query.isNotEmpty()) {
+                    searchPreferences.saveRecentSearch(event.query)
+                    loadRecentSearches()
+                    performSearch(event.query)
+                } else {
+                    _state.update { it.copy(searchResults = emptyList()) }
+                }
+            }
+            is SearchScreenEvent.OnFilterSelect -> {
+                _state.update { it.copy(selectedFilter = event.filter) }
+            }
+            is SearchScreenEvent.OnTagSelect -> {
+                _state.update { it.copy(
+                    selectedTags = it.selectedTags + event.tag
+                )}
+            }
+            is SearchScreenEvent.OnTagDeselect -> {
+                _state.update { it.copy(
+                    selectedTags = it.selectedTags - event.tag
+                )}
+            }
+            is SearchScreenEvent.OnRecentSearchClick -> {
+                _state.update { it.copy(searchQuery = event.query) }
+                searchPreferences.saveRecentSearch(event.query)
+                loadRecentSearches()
+                performSearch(event.query)
+            }
+            SearchScreenEvent.OnErrorDismiss -> {
+                _state.update { it.copy(error = null) }
+            }
+            is SearchScreenEvent.OnToggleFavorite -> {
+                toggleFavorite(event.link)
+            }
+            is SearchScreenEvent.OnToggleArchive -> {
+                toggleArchive(event.link)
+            }
+        }
+    }
+}

@@ -1,6 +1,11 @@
 package com.hp77.linkstash.presentation.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
+import com.hp77.linkstash.presentation.components.NoRippleInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +17,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -21,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.presentation.components.OpenLinkBottomSheet
@@ -37,11 +46,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hp77.linkstash.util.DateUtils
-import com.hp77.linkstash.presentation.components.DefaultFilters
-import com.hp77.linkstash.presentation.components.FilterChips
 import com.hp77.linkstash.presentation.components.LinkItem
 import com.hp77.linkstash.presentation.components.SearchBar
-import com.hp77.linkstash.presentation.components.TagChips
 
 private fun handleLinkClick(
     clickedLink: Link,
@@ -67,6 +73,7 @@ private fun handleLinkClick(
 fun HomeScreen(
     onNavigateToAddLink: () -> Unit,
     onNavigateToEdit: (Link) -> Unit,
+    onNavigateToSearch: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -107,31 +114,14 @@ fun HomeScreen(
             ) {
                 SearchBar(
                     query = state.searchQuery,
-                    onQueryChange = { viewModel.onEvent(HomeScreenEvent.OnSearchQueryChange(it)) }
+                    onQueryChange = { viewModel.onEvent(HomeScreenEvent.OnSearchQueryChange(it)) },
+                    readOnly = true,
+                    onMenuClick = { viewModel.onEvent(HomeScreenEvent.OnMenuClick) },
+                    onProfileClick = { viewModel.onEvent(HomeScreenEvent.OnProfileClick) },
+                    onClick = onNavigateToSearch
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                FilterChips(
-                    filters = DefaultFilters(),
-                    selectedFilter = state.selectedFilter,
-                    onFilterSelect = { viewModel.onEvent(HomeScreenEvent.OnFilterSelect(it)) }
-                )
-
-                if (state.tags.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TagChips(
-                        tags = state.tags,
-                        selectedTags = state.selectedTags,
-                        onTagClick = { tag ->
-                            if (tag in state.selectedTags) {
-                                viewModel.onEvent(HomeScreenEvent.OnTagDeselect(tag))
-                            } else {
-                                viewModel.onEvent(HomeScreenEvent.OnTagSelect(tag))
-                            }
-                        }
-                    )
-                }
+                Spacer(modifier = Modifier.height(16.dp))
 
                 if (state.links.isEmpty()) {
                     Column(
@@ -203,6 +193,36 @@ fun HomeScreen(
         }
     }
 
+    // Show menu dialog
+    if (state.showMenu) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onEvent(HomeScreenEvent.OnMenuDismiss) },
+            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+            title = { Text("Menu") },
+            text = { Text("Menu options coming soon!") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onEvent(HomeScreenEvent.OnMenuDismiss) }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    // Show profile dialog
+    if (state.showProfile) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onEvent(HomeScreenEvent.OnProfileDismiss) },
+            icon = { Icon(Icons.Default.Person, contentDescription = null) },
+            title = { Text("Profile") },
+            text = { Text("Profile options coming soon!") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onEvent(HomeScreenEvent.OnProfileDismiss) }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
     // Show bottom sheet if a link is selected
     selectedLink?.let { link ->
         OpenLinkBottomSheet(
@@ -216,10 +236,10 @@ fun HomeScreen(
                 selectedLink = null
                 context.startActivity(UrlHandler.createBrowserIntent(link.url))
             },
-                onEdit = {
-                    selectedLink = null
-                    onNavigateToEdit(link)
-                }
+            onEdit = {
+                selectedLink = null
+                onNavigateToEdit(link)
+            }
         )
     }
 }

@@ -19,6 +19,7 @@ import androidx.navigation.navArgument
 import com.hp77.linkstash.presentation.addlink.AddEditLinkScreen
 import com.hp77.linkstash.presentation.home.HomeScreen
 import com.hp77.linkstash.presentation.navigation.Screen
+import com.hp77.linkstash.presentation.search.SearchScreen
 import com.hp77.linkstash.presentation.webview.WebViewScreen
 import java.net.URLDecoder
 import com.hp77.linkstash.ui.theme.LinkStashTheme
@@ -67,6 +68,29 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToEdit = { link ->
                                     navController.navigate(Screen.EditLink.createRoute(link.id))
+                                },
+                                onNavigateToSearch = {
+                                    navController.navigate(Screen.Search.route)
+                                }
+                            )
+                        }
+                        
+                        composable(Screen.Search.route) {
+                            SearchScreen(
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                },
+                                onNavigateToLink = { link ->
+                                    navController.navigate(Screen.WebView.createRoute(link.url))
+                                },
+                                onEditLink = { link ->
+                                    navController.navigate(Screen.EditLink.createRoute(link.id))
+                                },
+                                onToggleFavorite = { link ->
+                                    // Handle in SearchScreen
+                                },
+                                onToggleArchive = { link ->
+                                    // Handle in SearchScreen
                                 }
                             )
                         }

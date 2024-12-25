@@ -28,18 +28,4 @@ data class Link(
     }
 }
 
-data class Tag(
-    val id: String,
-    val name: String,
-    val color: String?,
-    val createdAt: Long
-) {
-    companion object {
-        fun empty() = Tag(
-            id = "",
-            name = "",
-            color = null,
-            createdAt = System.currentTimeMillis()
-        )
-    }
-}
+

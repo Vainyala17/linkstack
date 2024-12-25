@@ -1,6 +1,8 @@
 package com.hp77.linkstash.presentation.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.hp77.linkstash.presentation.components.NoRippleInteractionSource
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -41,15 +43,29 @@ fun CustomTextField(
     textStyle: TextStyle = LocalTextStyle.current,
     shape: androidx.compose.ui.graphics.Shape = MaterialTheme.shapes.medium,
     colors: TextFieldColors = TextFieldDefaults.colors(),
-    outlined: Boolean = true
+    outlined: Boolean = true,
+    onClick: (() -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val baseModifier = if (readOnly && onClick != null) {
+        // Move the clickable modifier to be the first in the chain
+        Modifier
+            .clickable(
+                interactionSource = remember { NoRippleInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .fillMaxWidth()
+            .then(modifier)
+    } else {
+        Modifier.fillMaxWidth().then(modifier)
+    }
 
     if (outlined) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = modifier.fillMaxWidth(),
+            modifier = baseModifier,
             enabled = enabled,
             readOnly = readOnly,
             textStyle = textStyle,
@@ -79,7 +95,7 @@ fun CustomTextField(
         TextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = modifier.fillMaxWidth(),
+            modifier = baseModifier,
             enabled = enabled,
             readOnly = readOnly,
             textStyle = textStyle,
