@@ -1,5 +1,7 @@
 package com.hp77.linkstash.presentation.addlink
 
+import com.hp77.linkstash.domain.model.Tag
+
 data class AddEditLinkScreenState(
     val url: String = "",
     val title: String? = null,
@@ -7,8 +9,8 @@ data class AddEditLinkScreenState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isUrlError: Boolean = false,
-    val selectedTags: List<String> = emptyList(),
-    val availableTags: List<String> = emptyList(),
+    val selectedTags: List<Tag> = emptyList(),
+    val availableTags: List<Tag> = emptyList(),
     val newTagName: String = "",
     val isEditMode: Boolean = false,
     val linkId: String? = null,

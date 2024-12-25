@@ -1,9 +1,23 @@
 package com.hp77.linkstash.presentation.addlink
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -12,6 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hp77.linkstash.presentation.components.ReminderSection
+import com.hp77.linkstash.presentation.components.TagChips
+import com.hp77.linkstash.domain.model.Tag
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +77,8 @@ fun AddEditLinkScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -96,6 +116,57 @@ fun AddEditLinkScreen(
                 onSetReminder = { viewModel.onEvent(AddEditLinkScreenEvent.OnSetReminder(it)) },
                 onRemoveReminder = { viewModel.onEvent(AddEditLinkScreenEvent.OnRemoveReminder) }
             )
+
+            // Tags Section
+            Column {
+                Text(
+                    text = "Tags",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                // Selected Tags
+                if (state.selectedTags.isNotEmpty()) {
+                    TagChips(
+                        tags = state.selectedTags,
+                        onTagClick = { tag -> viewModel.onEvent(AddEditLinkScreenEvent.OnTagDeselect(tagName = tag.name)) },
+                        onTagRemove = { tag -> viewModel.onEvent(AddEditLinkScreenEvent.OnTagDeselect(tagName = tag.name)) },
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                
+                // Available Tags
+                if (state.availableTags.isNotEmpty()) {
+                    TagChips(
+                        tags = state.availableTags,
+                        selectedTags = state.selectedTags,
+                        onTagClick = { tag -> viewModel.onEvent(AddEditLinkScreenEvent.OnTagSelect(tagName = tag.name)) }
+                    )
+                }
+                
+                // Add New Tag
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = state.newTagName,
+                        onValueChange = { viewModel.onEvent(AddEditLinkScreenEvent.OnNewTagNameChange(it)) },
+                        label = { Text("New Tag") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    )
+                    Button(
+                        onClick = { 
+                            viewModel.onEvent(AddEditLinkScreenEvent.OnTagAdd)
+                        },
+                        enabled = state.newTagName.isNotEmpty()
+                    ) {
+                        Text("Add")
+                    }
+                }
+            }
 
             Button(
                 onClick = { viewModel.onEvent(AddEditLinkScreenEvent.OnSave) },

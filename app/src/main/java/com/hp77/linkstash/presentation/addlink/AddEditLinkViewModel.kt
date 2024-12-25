@@ -4,12 +4,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hp77.linkstash.domain.model.Link
+import com.hp77.linkstash.domain.model.Tag
 import com.hp77.linkstash.domain.usecase.link.AddLinkUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkUseCase
 import com.hp77.linkstash.domain.repository.LinkRepository
+import com.hp77.linkstash.domain.repository.TagRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,6 +22,7 @@ class AddEditLinkViewModel @Inject constructor(
     private val addLinkUseCase: AddLinkUseCase,
     private val updateLinkUseCase: UpdateLinkUseCase,
     private val linkRepository: LinkRepository,
+    private val tagRepository: TagRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -26,6 +30,13 @@ class AddEditLinkViewModel @Inject constructor(
     val state: StateFlow<AddEditLinkScreenState> = _state
 
     init {
+        // Load available tags
+        viewModelScope.launch {
+            val allTags = tagRepository.getAllTags().first()
+            _state.update { it.copy(availableTags = allTags) }
+        }
+
+        // Initialize edit mode if linkId is provided
         savedStateHandle.get<String>("linkId")?.let { linkId ->
             viewModelScope.launch {
                 linkRepository.getLinkById(linkId)?.let { link ->
@@ -35,6 +46,10 @@ class AddEditLinkViewModel @Inject constructor(
                         description = link.description,
                         notes = link.notes,
                         reminderTime = link.reminderTime,
+                        selectedTags = link.tags,
+                        availableTags = _state.value.availableTags.filter { availableTag ->
+                            !link.tags.any { it.id == availableTag.id }
+                        },
                         isEditMode = true,
                         linkId = linkId
                     ) }
@@ -67,29 +82,61 @@ class AddEditLinkViewModel @Inject constructor(
                 _state.update { it.copy(reminderTime = null) }
             }
             is AddEditLinkScreenEvent.OnTagSelect -> {
-                // TODO: Implement tag selection
+                val selectedTag = _state.value.availableTags.find { it.name == event.tagName }
+                selectedTag?.let { tag ->
+                    _state.update { currentState ->
+                        currentState.copy(
+                            selectedTags = currentState.selectedTags + tag,
+                            availableTags = currentState.availableTags - tag
+                        )
+                    }
+                }
             }
             is AddEditLinkScreenEvent.OnTagDeselect -> {
-                // TODO: Implement tag deselection
+                val deselectedTag = _state.value.selectedTags.find { it.name == event.tagName }
+                deselectedTag?.let { tag ->
+                    _state.update { currentState ->
+                        currentState.copy(
+                            selectedTags = currentState.selectedTags - tag,
+                            availableTags = currentState.availableTags + tag
+                        )
+                    }
+                }
             }
             is AddEditLinkScreenEvent.OnTagAdd -> {
-                // TODO: Implement adding new tag
+                if (_state.value.newTagName.isNotEmpty()) {
+                    viewModelScope.launch {
+                        val newTag = tagRepository.getOrCreateTag(_state.value.newTagName)
+                        _state.update { currentState ->
+                            currentState.copy(
+                                selectedTags = currentState.selectedTags + newTag,
+                                newTagName = "" // Reset the input field
+                            )
+                        }
+                    }
+                }
             }
             is AddEditLinkScreenEvent.OnNewTagNameChange -> {
-                // TODO: Implement new tag name change
+                _state.update { it.copy(newTagName = event.name) }
             }
             is AddEditLinkScreenEvent.OnInitializeEdit -> {
                 viewModelScope.launch {
                     linkRepository.getLinkById(event.linkId)?.let { link ->
-                        _state.update { it.copy(
-                            url = link.url,
-                            title = link.title,
-                            description = link.description,
-                            notes = link.notes,
-                            reminderTime = link.reminderTime,
-                            isEditMode = true,
-                            linkId = event.linkId
-                        ) }
+                        _state.update { currentState ->
+                            currentState.copy(
+                                url = link.url,
+                                title = link.title,
+                                description = link.description,
+                                notes = link.notes,
+                                reminderTime = link.reminderTime,
+                                selectedTags = link.tags,
+                                availableTags = currentState.availableTags.filter { availableTag ->
+                                    !link.tags.any { it.id == availableTag.id }
+                                },
+                                isEditMode = true,
+                                linkId = event.linkId
+                            )
+                        }
                     }
                 }
             }
@@ -121,7 +168,7 @@ class AddEditLinkViewModel @Inject constructor(
                                     isArchived = false,
                                     isFavorite = false,
                                     notes = state.value.notes,
-                                    tags = emptyList()
+                                    tags = state.value.selectedTags
                                 )
                             )
                             if (result.isFailure) {
@@ -140,7 +187,7 @@ class AddEditLinkViewModel @Inject constructor(
                                     isArchived = false,
                                     isFavorite = false,
                                     notes = state.value.notes,
-                                    tags = emptyList()
+                                    tags = state.value.selectedTags
                                 )
                             )
                             if (result.isFailure) {
