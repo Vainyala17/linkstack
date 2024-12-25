@@ -18,6 +18,7 @@ import com.hp77.linkstash.presentation.components.SearchBar
 import com.hp77.linkstash.presentation.components.TagChips
 import com.hp77.linkstash.presentation.components.DefaultFilters
 import com.hp77.linkstash.presentation.components.LinkItem
+import com.hp77.linkstash.presentation.components.ShareBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,8 +97,8 @@ fun SearchScreen(
                             onToggleFavorite = onToggleFavorite,
                             onToggleArchive = onToggleArchive,
                             onToggleStatus = onToggleStatus,
-                            onShareToHackerNews = { link ->
-                                viewModel.onEvent(SearchScreenEvent.OnShareToHackerNews(link))
+                            onShare = { link ->
+                                viewModel.onEvent(SearchScreenEvent.OnShowShareSheet(link))
                             }
                         )
                     }
@@ -140,6 +141,22 @@ fun SearchScreen(
                     }
                 }
             }
+        }
+    }
+
+    // Show share sheet if a link is selected for sharing
+    state.selectedLink?.let { selectedLink ->
+        if (state.showShareSheet) {
+            ShareBottomSheet(
+                link = selectedLink,
+                onDismiss = { viewModel.onEvent(SearchScreenEvent.OnDismissShareSheet) },
+                onShareToHackerNews = {
+                    viewModel.onEvent(SearchScreenEvent.OnShareToHackerNews(selectedLink))
+                },
+                onSyncToGitHub = {
+                    viewModel.onEvent(SearchScreenEvent.OnSyncToGitHub(selectedLink))
+                }
+            )
         }
     }
 }

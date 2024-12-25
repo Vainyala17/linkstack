@@ -11,6 +11,8 @@ data class HomeScreenState(
     val error: String? = null,
     val showMenu: Boolean = false,
     val showProfile: Boolean = false,
+    val showShareSheet: Boolean = false,
+    val selectedLink: Link? = null,
     val selectedFilter: LinkFilter = LinkFilter.All,
     val currentTheme: ThemeMode = ThemeMode.SYSTEM
 )

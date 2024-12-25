@@ -54,6 +54,7 @@ import com.hp77.linkstash.util.DateUtils
 import com.hp77.linkstash.presentation.components.LinkItem
 import com.hp77.linkstash.presentation.components.SearchBar
 import com.hp77.linkstash.presentation.components.FilterChips
+import com.hp77.linkstash.presentation.components.ShareBottomSheet
 
 private fun handleLinkClick(
     clickedLink: Link,
@@ -208,8 +209,8 @@ fun HomeScreen(
                                     onToggleStatus = {
                                         viewModel.onEvent(HomeScreenEvent.OnToggleStatus(it))
                                     },
-                                    onShareToHackerNews = {
-                                        viewModel.onEvent(HomeScreenEvent.OnShareToHackerNews(it))
+                                    onShare = { link ->
+                                        viewModel.onEvent(HomeScreenEvent.OnShowShareSheet(link))
                                     }
                                 )
                             }
@@ -337,5 +338,21 @@ fun HomeScreen(
                 }
             }
         )
+    }
+
+    // Show share sheet if a link is selected for sharing
+    state.selectedLink?.let { selectedLink ->
+        if (state.showShareSheet) {
+            ShareBottomSheet(
+                link = selectedLink,
+                onDismiss = { viewModel.onEvent(HomeScreenEvent.OnDismissShareSheet) },
+                onShareToHackerNews = {
+                    viewModel.onEvent(HomeScreenEvent.OnShareToHackerNews(selectedLink))
+                },
+                onSyncToGitHub = {
+                    viewModel.onEvent(HomeScreenEvent.OnSyncToGitHub(selectedLink))
+                }
+            )
+        }
     }
 }

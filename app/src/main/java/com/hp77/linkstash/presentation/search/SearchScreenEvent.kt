@@ -10,5 +10,8 @@ sealed class SearchScreenEvent {
     data class OnTagDeselect(val tag: Tag) : SearchScreenEvent()
     object OnErrorDismiss : SearchScreenEvent()
     data class OnRecentSearchClick(val query: String) : SearchScreenEvent()
+    data class OnShowShareSheet(val link: Link) : SearchScreenEvent()
+    object OnDismissShareSheet : SearchScreenEvent()
     data class OnShareToHackerNews(val link: Link) : SearchScreenEvent()
+    data class OnSyncToGitHub(val link: Link) : SearchScreenEvent()
 }

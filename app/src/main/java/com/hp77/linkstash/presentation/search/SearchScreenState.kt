@@ -11,5 +11,7 @@ data class SearchScreenState(
     val recentSearches: List<String> = emptyList(),
     val searchResults: List<Link> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showShareSheet: Boolean = false,
+    val selectedLink: Link? = null
 )

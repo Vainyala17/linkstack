@@ -55,7 +55,7 @@ private fun LinkActions(
     onToggleFavorite: (Link) -> Unit,
     onEditClick: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
-    onShareToHackerNews: (Link) -> Unit,
+    onShare: (Link) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -82,10 +82,10 @@ private fun LinkActions(
                 contentDescription = if (link.isArchived) "Unarchive" else "Archive"
             )
         }
-        IconButton(onClick = { onShareToHackerNews(link) }) {
+        IconButton(onClick = { onShare(link) }) {
             Icon(
-                imageVector = if (link.hackerNewsUrl != null) Icons.Default.Launch else Icons.Default.Share,
-                contentDescription = if (link.hackerNewsUrl != null) "View on HackerNews" else "Share to HackerNews"
+                imageVector = Icons.Default.Share,
+                contentDescription = "Share options"
             )
         }
         if (link.lastSyncedAt != null) {
@@ -143,7 +143,7 @@ fun LinkItem(
     onToggleFavorite: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
     onToggleStatus: (Link) -> Unit,
-    onShareToHackerNews: (Link) -> Unit,
+    onShare: (Link) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dateFormatter = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
@@ -275,7 +275,7 @@ fun LinkItem(
                         onToggleFavorite = onToggleFavorite,
                         onEditClick = onEditClick,
                         onToggleArchive = onToggleArchive,
-                        onShareToHackerNews = onShareToHackerNews
+                        onShare = onShare
                     )
                 }
             }

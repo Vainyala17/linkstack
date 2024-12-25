@@ -8,6 +8,7 @@ import com.hp77.linkstash.domain.usecase.link.GetLinksUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
 import com.hp77.linkstash.domain.usecase.link.ToggleLinkStatusUseCase
 import com.hp77.linkstash.domain.usecase.link.ShareToHackerNewsUseCase
+import com.hp77.linkstash.domain.usecase.sync.SyncLinksToGitHubUseCase
 import com.hp77.linkstash.data.preferences.ThemeMode
 import com.hp77.linkstash.data.preferences.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +28,8 @@ class HomeViewModel @Inject constructor(
     private val updateLinkStateUseCase: UpdateLinkStateUseCase,
     private val toggleLinkStatusUseCase: ToggleLinkStatusUseCase,
     private val themePreferences: ThemePreferences,
-    private val shareToHackerNewsUseCase: ShareToHackerNewsUseCase
+    private val shareToHackerNewsUseCase: ShareToHackerNewsUseCase,
+    private val syncLinksToGitHubUseCase: SyncLinksToGitHubUseCase
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -35,6 +37,8 @@ class HomeViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     private val _showMenu = MutableStateFlow(false)
     private val _showProfile = MutableStateFlow(false)
+    private val _showShareSheet = MutableStateFlow(false)
+    private val _selectedLink = MutableStateFlow<Link?>(null)
     private val _selectedFilter = MutableStateFlow<LinkFilter>(LinkFilter.All)
     private val _currentTheme = MutableStateFlow(ThemeMode.SYSTEM)
 
@@ -67,6 +71,8 @@ class HomeViewModel @Inject constructor(
         val isLoading: Boolean,
         val showMenu: Boolean,
         val showProfile: Boolean,
+        val showShareSheet: Boolean,
+        val selectedLink: Link?,
         val selectedFilter: LinkFilter,
         val currentTheme: ThemeMode
     ) {
@@ -77,6 +83,8 @@ class HomeViewModel @Inject constructor(
             isLoading = isLoading,
             showMenu = showMenu,
             showProfile = showProfile,
+            showShareSheet = showShareSheet,
+            selectedLink = selectedLink,
             selectedFilter = selectedFilter,
             currentTheme = currentTheme
         )
@@ -89,6 +97,8 @@ class HomeViewModel @Inject constructor(
         _isLoading,
         _showMenu,
         _showProfile,
+        _showShareSheet,
+        _selectedLink,
         _selectedFilter,
         _currentTheme
     ) { args -> 
@@ -99,8 +109,10 @@ class HomeViewModel @Inject constructor(
             isLoading = args[3] as Boolean,
             showMenu = args[4] as Boolean,
             showProfile = args[5] as Boolean,
-            selectedFilter = args[6] as LinkFilter,
-            currentTheme = args[7] as ThemeMode
+            showShareSheet = args[6] as Boolean,
+            selectedLink = args[7] as Link?,
+            selectedFilter = args[8] as LinkFilter,
+            currentTheme = args[9] as ThemeMode
         ).toHomeScreenState()
     }.stateIn(
         scope = viewModelScope,
@@ -171,6 +183,14 @@ class HomeViewModel @Inject constructor(
             HomeScreenEvent.OnProfileDismiss -> {
                 _showProfile.value = false
             }
+            is HomeScreenEvent.OnShowShareSheet -> {
+                _selectedLink.value = event.link
+                _showShareSheet.value = true
+            }
+            HomeScreenEvent.OnDismissShareSheet -> {
+                _showShareSheet.value = false
+                _selectedLink.value = null
+            }
             is HomeScreenEvent.OnShareToHackerNews -> {
                 viewModelScope.launch {
                     try {
@@ -178,6 +198,22 @@ class HomeViewModel @Inject constructor(
                         if (result.isFailure) {
                             throw result.exceptionOrNull() ?: Exception("Unknown error")
                         }
+                        _showShareSheet.value = false
+                        _selectedLink.value = null
+                    } catch (e: Exception) {
+                        _error.value = e.message
+                    }
+                }
+            }
+            is HomeScreenEvent.OnSyncToGitHub -> {
+                viewModelScope.launch {
+                    try {
+                        val result = syncLinksToGitHubUseCase()
+                        if (result.isFailure) {
+                            throw result.exceptionOrNull() ?: Exception("Unknown error")
+                        }
+                        _showShareSheet.value = false
+                        _selectedLink.value = null
                     } catch (e: Exception) {
                         _error.value = e.message
                     }

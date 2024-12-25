@@ -7,6 +7,7 @@ import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.domain.repository.TagRepository
 import com.hp77.linkstash.domain.usecase.link.ShareToHackerNewsUseCase
+import com.hp77.linkstash.domain.usecase.sync.SyncLinksToGitHubUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,8 @@ class SearchViewModel @Inject constructor(
     private val linkRepository: LinkRepository,
     private val tagRepository: TagRepository,
     private val searchPreferences: SearchPreferences,
-    private val shareToHackerNewsUseCase: ShareToHackerNewsUseCase
+    private val shareToHackerNewsUseCase: ShareToHackerNewsUseCase,
+    private val syncLinksToGitHubUseCase: SyncLinksToGitHubUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SearchScreenState())
@@ -127,6 +129,18 @@ class SearchViewModel @Inject constructor(
             SearchScreenEvent.OnErrorDismiss -> {
                 _state.update { it.copy(error = null) }
             }
+            is SearchScreenEvent.OnShowShareSheet -> {
+                _state.update { it.copy(
+                    showShareSheet = true,
+                    selectedLink = event.link
+                ) }
+            }
+            SearchScreenEvent.OnDismissShareSheet -> {
+                _state.update { it.copy(
+                    showShareSheet = false,
+                    selectedLink = null
+                ) }
+            }
             is SearchScreenEvent.OnShareToHackerNews -> {
                 viewModelScope.launch {
                     try {
@@ -134,6 +148,26 @@ class SearchViewModel @Inject constructor(
                         if (result.isFailure) {
                             throw result.exceptionOrNull() ?: Exception("Unknown error")
                         }
+                        _state.update { it.copy(
+                            showShareSheet = false,
+                            selectedLink = null
+                        ) }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(error = e.message) }
+                    }
+                }
+            }
+            is SearchScreenEvent.OnSyncToGitHub -> {
+                viewModelScope.launch {
+                    try {
+                        val result = syncLinksToGitHubUseCase()
+                        if (result.isFailure) {
+                            throw result.exceptionOrNull() ?: Exception("Unknown error")
+                        }
+                        _state.update { it.copy(
+                            showShareSheet = false,
+                            selectedLink = null
+                        ) }
                     } catch (e: Exception) {
                         _state.update { it.copy(error = e.message) }
                     }
