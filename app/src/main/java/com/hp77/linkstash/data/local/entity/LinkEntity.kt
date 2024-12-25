@@ -15,6 +15,5 @@ data class LinkEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val reminderTime: Long? = null,
     val isArchived: Boolean = false,
-    val isFavorite: Boolean = false,
-    val tags: List<String> // Store as comma-separated string in Room using TypeConverter
+    val isFavorite: Boolean = false
 )

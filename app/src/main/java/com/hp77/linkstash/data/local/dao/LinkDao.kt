@@ -37,15 +37,19 @@ interface LinkDao {
     @Query("SELECT * FROM links ORDER BY createdAt DESC")
     fun getAllLinksWithTags(): Flow<List<LinkWithTags>>
 
+    @Transaction
     @Query("SELECT * FROM links WHERE isArchived = 0 ORDER BY createdAt DESC")
-    fun getActiveLinks(): Flow<List<LinkEntity>>
+    fun getActiveLinks(): Flow<List<LinkWithTags>>
 
+    @Transaction
     @Query("SELECT * FROM links WHERE isArchived = 1 ORDER BY createdAt DESC")
-    fun getArchivedLinks(): Flow<List<LinkEntity>>
+    fun getArchivedLinks(): Flow<List<LinkWithTags>>
 
+    @Transaction
     @Query("SELECT * FROM links WHERE isFavorite = 1 ORDER BY createdAt DESC")
-    fun getFavoriteLinks(): Flow<List<LinkEntity>>
+    fun getFavoriteLinks(): Flow<List<LinkWithTags>>
 
+    @Transaction
     @Query("""
         SELECT * FROM links 
         WHERE title LIKE '%' || :query || '%' 
@@ -53,7 +57,7 @@ interface LinkDao {
         OR url LIKE '%' || :query || '%'
         ORDER BY createdAt DESC
     """)
-    fun searchLinks(query: String): Flow<List<LinkEntity>>
+    fun searchLinks(query: String): Flow<List<LinkWithTags>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLinkTagCrossRef(crossRef: LinkTagCrossRef)

@@ -6,7 +6,7 @@ import com.hp77.linkstash.data.local.relation.LinkWithTags
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.model.Tag
 
-fun LinkEntity.toLink(tags: List<Tag> = emptyList()) = Link(
+fun LinkEntity.toLink() = Link(
     id = id,
     url = url,
     title = title,
@@ -16,7 +16,7 @@ fun LinkEntity.toLink(tags: List<Tag> = emptyList()) = Link(
     reminderTime = reminderTime,
     isArchived = isArchived,
     isFavorite = isFavorite,
-    tags = tags
+    tags = emptyList()
 )
 
 fun Link.toLinkEntity() = LinkEntity(
@@ -28,8 +28,7 @@ fun Link.toLinkEntity() = LinkEntity(
     createdAt = createdAt,
     reminderTime = reminderTime,
     isArchived = isArchived,
-    isFavorite = isFavorite,
-    tags = tags.map { it.name }
+    isFavorite = isFavorite
 )
 
 fun TagEntity.toTag() = Tag(
@@ -46,15 +45,6 @@ fun Tag.toTagEntity() = TagEntity(
     createdAt = createdAt
 )
 
-fun LinkWithTags.toLink() = Link(
-    id = link.id,
-    url = link.url,
-    title = link.title,
-    description = link.description,
-    previewImageUrl = link.previewImageUrl,
-    createdAt = link.createdAt,
-    reminderTime = link.reminderTime,
-    isArchived = link.isArchived,
-    isFavorite = link.isFavorite,
+fun LinkWithTags.toLink() = link.toLink().copy(
     tags = tags.map { it.toTag() }
 )

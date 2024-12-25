@@ -24,14 +24,31 @@ sealed class TagFilter {
 class ManageTagsUseCase @Inject constructor(
     private val repository: TagRepository
 ) {
-    suspend operator fun invoke(operation: TagOperation) {
-        when (operation) {
-            is TagOperation.Add -> repository.insertTag(operation.tag)
-            is TagOperation.Update -> repository.updateTag(operation.tag)
-            is TagOperation.Delete -> repository.deleteTag(operation.tag)
-            is TagOperation.AddToLink -> repository.addTagToLink(operation.tag, operation.link)
-            is TagOperation.RemoveFromLink -> repository.removeTagFromLink(operation.tag, operation.link)
-            is TagOperation.GetOrCreate -> repository.getOrCreateTag(operation.name)
+    suspend operator fun invoke(operation: TagOperation): Tag? {
+        return when (operation) {
+            is TagOperation.Add -> {
+                repository.insertTag(operation.tag)
+                operation.tag
+            }
+            is TagOperation.Update -> {
+                repository.updateTag(operation.tag)
+                operation.tag
+            }
+            is TagOperation.Delete -> {
+                repository.deleteTag(operation.tag)
+                operation.tag
+            }
+            is TagOperation.AddToLink -> {
+                repository.addTagToLink(operation.tag, operation.link)
+                operation.tag
+            }
+            is TagOperation.RemoveFromLink -> {
+                repository.removeTagFromLink(operation.tag, operation.link)
+                operation.tag
+            }
+            is TagOperation.GetOrCreate -> {
+                repository.getOrCreateTag(operation.name)
+            }
         }
     }
 

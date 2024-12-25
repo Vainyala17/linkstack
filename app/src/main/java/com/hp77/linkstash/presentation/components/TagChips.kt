@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -53,8 +54,28 @@ fun TagChips(
             } else {
                 ElevatedAssistChip(
                     onClick = { onTagClick(tag) },
-                    label = { Text(tag.name) },
-                    modifier = Modifier.padding(end = 8.dp)
+                    label = { 
+                        Text(
+                            text = tag.name,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        ) 
+                    },
+                    modifier = Modifier.padding(end = 8.dp),
+                    border = if (isSelected) {
+                        AssistChipDefaults.assistChipBorder(
+                            borderColor = MaterialTheme.colorScheme.primary,
+                            borderWidth = 2.dp
+                        )
+                    } else null,
+                    elevation = if (isSelected) {
+                        AssistChipDefaults.elevatedAssistChipElevation(4.dp)
+                    } else {
+                        AssistChipDefaults.elevatedAssistChipElevation()
+                    }
                 )
             }
         }

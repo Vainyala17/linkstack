@@ -5,8 +5,9 @@ import androidx.room.Room
 import com.hp77.linkstash.data.local.LinkStashDatabase
 import com.hp77.linkstash.data.local.dao.LinkDao
 import com.hp77.linkstash.data.local.dao.TagDao
-import com.hp77.linkstash.data.repository.TestLinkRepository
-import com.hp77.linkstash.data.repository.TestTagRepository
+import com.hp77.linkstash.data.local.migrations.MIGRATION_1_2
+import com.hp77.linkstash.data.repository.LinkRepositoryImpl
+import com.hp77.linkstash.data.repository.TagRepositoryImpl
 import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.domain.repository.TagRepository
 import dagger.Module
@@ -29,7 +30,10 @@ object DatabaseModule {
             context,
             LinkStashDatabase::class.java,
             LinkStashDatabase.DATABASE_NAME
-        ).build()
+        )
+            .addMigrations(MIGRATION_1_2)
+            .fallbackToDestructiveMigration() // Allow fallback if migration fails
+            .build()
     }
 
     @Provides
@@ -46,15 +50,13 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideLinkRepository(): LinkRepository {
-        // Using TestLinkRepository for now
-        return TestLinkRepository()
+    fun provideLinkRepository(linkDao: LinkDao): LinkRepository {
+        return LinkRepositoryImpl(linkDao)
     }
 
     @Provides
     @Singleton
-    fun provideTagRepository(): TagRepository {
-        // Using TestTagRepository for now
-        return TestTagRepository()
+    fun provideTagRepository(tagDao: TagDao, linkDao: LinkDao): TagRepository {
+        return TagRepositoryImpl(tagDao, linkDao)
     }
 }

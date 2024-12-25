@@ -30,9 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.hp77.linkstash.util.DateUtils
 import com.hp77.linkstash.presentation.components.DefaultFilters
 import com.hp77.linkstash.presentation.components.FilterChips
 import com.hp77.linkstash.presentation.components.LinkItem
@@ -124,9 +122,17 @@ fun HomeScreen(
                     }
                 } else {
                     val groupedLinks = state.links.groupBy { link ->
-                        SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
-                            .format(Date(link.createdAt))
-                    }.toSortedMap(compareByDescending { it })
+                        DateUtils.formatDate(link.createdAt)
+                    }.toSortedMap { a, b ->
+                        // Custom comparator to ensure "Today" and "Yesterday" appear first
+                        when {
+                            a == "Today" -> -1
+                            b == "Today" -> 1
+                            a == "Yesterday" -> -1
+                            b == "Yesterday" -> 1
+                            else -> b.compareTo(a) // For other dates, maintain reverse chronological order
+                        }
+                    }
 
                     LazyColumn(
                         modifier = Modifier

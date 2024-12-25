@@ -17,13 +17,44 @@ class LinkRepositoryImpl @Inject constructor(
 ) : LinkRepository {
 
     override suspend fun insertLink(link: Link) {
+        // First insert the link
         val linkEntity = link.toLinkEntity()
         linkDao.insertLink(linkEntity)
+        
+        // Then create cross references for each tag
+        link.tags.forEach { tag ->
+            try {
+                val crossRef = LinkTagCrossRef(
+                    linkId = link.id,
+                    tagId = tag.id
+                )
+                linkDao.insertLinkTagCrossRef(crossRef)
+            } catch (e: Exception) {
+                // Log error but continue with other tags
+                e.printStackTrace()
+            }
+        }
     }
 
     override suspend fun updateLink(link: Link) {
+        // First update the link
         val linkEntity = link.toLinkEntity()
         linkDao.updateLink(linkEntity)
+        
+        try {
+            // Then update tag relationships
+            linkDao.deleteAllTagsForLink(link.id)
+            link.tags.forEach { tag ->
+                val crossRef = LinkTagCrossRef(
+                    linkId = link.id,
+                    tagId = tag.id
+                )
+                linkDao.insertLinkTagCrossRef(crossRef)
+            }
+        } catch (e: Exception) {
+            // Log error but don't fail the update
+            e.printStackTrace()
+        }
     }
 
     override suspend fun deleteLink(link: Link) {
@@ -42,34 +73,26 @@ class LinkRepositoryImpl @Inject constructor(
     }
 
     override fun getActiveLinks(): Flow<List<Link>> {
-        return linkDao.getAllLinksWithTags().map { links ->
-            links.filter { !it.link.isArchived }
-                .map { it.toLink() }
+        return linkDao.getActiveLinks().map { links ->
+            links.map { it.toLink() }
         }
     }
 
     override fun getArchivedLinks(): Flow<List<Link>> {
-        return linkDao.getAllLinksWithTags().map { links ->
-            links.filter { it.link.isArchived }
-                .map { it.toLink() }
+        return linkDao.getArchivedLinks().map { links ->
+            links.map { it.toLink() }
         }
     }
 
     override fun getFavoriteLinks(): Flow<List<Link>> {
-        return linkDao.getAllLinksWithTags().map { links ->
-            links.filter { it.link.isFavorite }
-                .map { it.toLink() }
+        return linkDao.getFavoriteLinks().map { links ->
+            links.map { it.toLink() }
         }
     }
 
     override fun searchLinks(query: String): Flow<List<Link>> {
-        return linkDao.getAllLinksWithTags().map { links ->
-            links.filter {
-                it.link.title?.contains(query, ignoreCase = true) == true ||
-                it.link.description?.contains(query, ignoreCase = true) == true ||
-                it.link.url.contains(query, ignoreCase = true) ||
-                it.tags.any { tag -> tag.name.contains(query, ignoreCase = true) }
-            }.map { it.toLink() }
+        return linkDao.searchLinks(query).map { links ->
+            links.map { it.toLink() }
         }
     }
 
