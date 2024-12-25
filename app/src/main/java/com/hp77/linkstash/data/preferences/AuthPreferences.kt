@@ -19,10 +19,20 @@ class AuthPreferences @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val githubTokenKey = stringPreferencesKey("github_token")
+    private val githubRepoNameKey = stringPreferencesKey("github_repo_name")
+    private val githubRepoOwnerKey = stringPreferencesKey("github_repo_owner")
     private val hackerNewsTokenKey = stringPreferencesKey("hackernews_token")
 
     val githubToken: Flow<String?> = context.authDataStore.data.map { preferences ->
         preferences[githubTokenKey]
+    }
+
+    val githubRepoName: Flow<String?> = context.authDataStore.data.map { preferences ->
+        preferences[githubRepoNameKey]
+    }
+
+    val githubRepoOwner: Flow<String?> = context.authDataStore.data.map { preferences ->
+        preferences[githubRepoOwnerKey]
     }
 
     val hackerNewsToken: Flow<String?> = context.authDataStore.data.map { preferences ->
@@ -49,9 +59,31 @@ class AuthPreferences @Inject constructor(
         }
     }
 
+    suspend fun updateGitHubRepoName(name: String?) {
+        context.authDataStore.edit { preferences ->
+            if (name == null) {
+                preferences.remove(githubRepoNameKey)
+            } else {
+                preferences[githubRepoNameKey] = name
+            }
+        }
+    }
+
+    suspend fun updateGitHubRepoOwner(owner: String?) {
+        context.authDataStore.edit { preferences ->
+            if (owner == null) {
+                preferences.remove(githubRepoOwnerKey)
+            } else {
+                preferences[githubRepoOwnerKey] = owner
+            }
+        }
+    }
+
     suspend fun clearTokens() {
         context.authDataStore.edit { preferences ->
             preferences.remove(githubTokenKey)
+            preferences.remove(githubRepoNameKey)
+            preferences.remove(githubRepoOwnerKey)
             preferences.remove(hackerNewsTokenKey)
         }
     }

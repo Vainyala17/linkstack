@@ -73,20 +73,44 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (state.isGitHubAuthenticated) {
-                            Button(
-                                onClick = { viewModel.onEvent(SettingsScreenEvent.SyncToGitHub) },
-                                enabled = !state.isGitHubSyncing,
-                                modifier = Modifier.weight(1f)
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.Sync, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(if (state.isGitHubSyncing) "Syncing..." else "Sync Now")
-                            }
-                            OutlinedButton(
-                                onClick = { viewModel.onEvent(SettingsScreenEvent.DisconnectGitHub) },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Disconnect")
+                                OutlinedTextField(
+                                    value = state.githubRepoName,
+                                    onValueChange = { viewModel.onEvent(SettingsScreenEvent.UpdateGitHubRepoName(it)) },
+                                    label = { Text("Repository Name") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = state.githubRepoOwner,
+                                    onValueChange = { viewModel.onEvent(SettingsScreenEvent.UpdateGitHubRepoOwner(it)) },
+                                    label = { Text("Repository Owner") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = { viewModel.onEvent(SettingsScreenEvent.SyncToGitHub) },
+                                        enabled = !state.isGitHubSyncing,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(Icons.Default.Sync, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(if (state.isGitHubSyncing) "Syncing..." else "Sync Now")
+                                    }
+                                    OutlinedButton(
+                                        onClick = { viewModel.onEvent(SettingsScreenEvent.DisconnectGitHub) },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("Disconnect")
+                                    }
+                                }
                             }
                         } else {
                             Column(

@@ -17,7 +17,7 @@ class GitHubSyncRepository @Inject constructor(
     private val authPreferences: AuthPreferences
 ) {
     companion object {
-        private const val REPO_NAME = "linkstash-backup"
+        private const val DEFAULT_REPO_NAME = "linkstash-backup"
         private const val REPO_DESCRIPTION = "LinkStash app backup repository"
         private const val LINKS_FILE = "links.md"
         private const val COMMIT_MESSAGE = "Update links"
@@ -25,6 +25,7 @@ class GitHubSyncRepository @Inject constructor(
 
     suspend fun syncLinks(links: List<Link>): Result<Unit> = runCatching {
         val token = authPreferences.githubToken.first() ?: throw IllegalStateException("GitHub token not found")
+        val repoName = authPreferences.githubRepoName.first() ?: DEFAULT_REPO_NAME
         val authHeader = "token $token"
 
         // Get user info
@@ -33,6 +34,9 @@ class GitHubSyncRepository @Inject constructor(
             throw Exception("Failed to get user info: ${userResponse.errorBody()?.string()}")
         }
         val user = userResponse.body()!!
+        
+        // Use configured repo owner or fall back to authenticated user
+        val repoOwner = authPreferences.githubRepoOwner.first() ?: user.login
 
         // Check if repo exists or create it
         val reposResponse = gitHubService.getRepositories(authHeader)
@@ -40,11 +44,11 @@ class GitHubSyncRepository @Inject constructor(
             throw Exception("Failed to get repositories: ${reposResponse.errorBody()?.string()}")
         }
 
-        val repo = reposResponse.body()!!.find { it.name == REPO_NAME } ?: run {
+        val repo = reposResponse.body()!!.find { it.name == repoName } ?: run {
             val createRepoResponse = gitHubService.createRepository(
                 authHeader,
                 CreateRepoRequest(
-                    name = REPO_NAME,
+                    name = repoName,
                     description = REPO_DESCRIPTION
                 )
             )
@@ -61,16 +65,16 @@ class GitHubSyncRepository @Inject constructor(
         // Try to get existing file to get its SHA
         val fileResponse = gitHubService.getFileContent(
             authHeader,
-            user.login,
-            REPO_NAME,
+            repoOwner,
+            repoName,
             LINKS_FILE
         )
 
         // Update or create file
         val updateResponse = gitHubService.updateFile(
             authHeader,
-            user.login,
-            REPO_NAME,
+            repoOwner,
+            repoName,
             LINKS_FILE,
             UpdateFileRequest(
                 message = COMMIT_MESSAGE,

@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,8 +27,11 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // Initialize GitHub state
             _state.update { it.copy(
                 isGitHubAuthenticated = gitHubSyncRepository.isAuthenticated(),
+                githubRepoName = authPreferences.githubRepoName.first() ?: "",
+                githubRepoOwner = authPreferences.githubRepoOwner.first() ?: "",
                 isHackerNewsAuthenticated = hackerNewsRepository.isAuthenticated()
             ) }
         }
@@ -37,6 +41,18 @@ class SettingsViewModel @Inject constructor(
         when (event) {
             is SettingsScreenEvent.UpdateGitHubToken -> {
                 _state.update { it.copy(githubToken = event.token) }
+            }
+            is SettingsScreenEvent.UpdateGitHubRepoName -> {
+                _state.update { it.copy(githubRepoName = event.name) }
+                viewModelScope.launch {
+                    authPreferences.updateGitHubRepoName(event.name)
+                }
+            }
+            is SettingsScreenEvent.UpdateGitHubRepoOwner -> {
+                _state.update { it.copy(githubRepoOwner = event.owner) }
+                viewModelScope.launch {
+                    authPreferences.updateGitHubRepoOwner(event.owner)
+                }
             }
             is SettingsScreenEvent.ConnectGitHub -> {
                 viewModelScope.launch {
@@ -58,7 +74,13 @@ class SettingsViewModel @Inject constructor(
             is SettingsScreenEvent.DisconnectGitHub -> {
                 viewModelScope.launch {
                     gitHubSyncRepository.logout()
-                    _state.update { it.copy(isGitHubAuthenticated = false) }
+                    authPreferences.updateGitHubRepoName(null)
+                    authPreferences.updateGitHubRepoOwner(null)
+                    _state.update { it.copy(
+                        isGitHubAuthenticated = false,
+                        githubRepoName = "",
+                        githubRepoOwner = ""
+                    ) }
                 }
             }
             is SettingsScreenEvent.SyncToGitHub -> {
