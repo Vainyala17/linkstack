@@ -5,6 +5,10 @@ import androidx.room.Room
 import com.hp77.linkstash.data.local.LinkStashDatabase
 import com.hp77.linkstash.data.local.dao.LinkDao
 import com.hp77.linkstash.data.local.dao.TagDao
+import com.hp77.linkstash.data.repository.LinkRepositoryImpl
+import com.hp77.linkstash.data.repository.TagRepositoryImpl
+import com.hp77.linkstash.domain.repository.LinkRepository
+import com.hp77.linkstash.domain.repository.TagRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,5 +42,22 @@ object DatabaseModule {
     @Singleton
     fun provideTagDao(database: LinkStashDatabase): TagDao {
         return database.tagDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLinkRepository(
+        linkDao: LinkDao
+    ): LinkRepository {
+        return LinkRepositoryImpl(linkDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTagRepository(
+        tagDao: TagDao,
+        linkDao: LinkDao
+    ): TagRepository {
+        return TagRepositoryImpl(tagDao, linkDao)
     }
 }
