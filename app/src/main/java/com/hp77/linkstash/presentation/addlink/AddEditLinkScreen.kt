@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hp77.linkstash.domain.model.Tag
+import com.hp77.linkstash.presentation.components.ReminderSection
 import com.hp77.linkstash.presentation.components.TagChips
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -176,6 +177,18 @@ fun AddEditLinkScreen(
                     minLines = 3,
                     maxLines = 5,
                     shape = MaterialTheme.shapes.medium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ReminderSection(
+                    reminderTime = state.reminderTime,
+                    onSetReminder = { timestamp ->
+                        viewModel.onEvent(AddEditLinkScreenEvent.OnSetReminder(timestamp))
+                    },
+                    onRemoveReminder = {
+                        viewModel.onEvent(AddEditLinkScreenEvent.OnRemoveReminder)
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

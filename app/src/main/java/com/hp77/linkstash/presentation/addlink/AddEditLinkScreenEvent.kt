@@ -9,6 +9,8 @@ sealed class AddEditLinkScreenEvent {
     data class OnTagAdd(val tag: String) : AddEditLinkScreenEvent()
     data class OnNewTagNameChange(val name: String) : AddEditLinkScreenEvent()
     data class OnInitializeEdit(val linkId: String) : AddEditLinkScreenEvent()
+    data class OnSetReminder(val timestamp: Long) : AddEditLinkScreenEvent()
+    object OnRemoveReminder : AddEditLinkScreenEvent()
     object OnToggleFavorite : AddEditLinkScreenEvent()
     object OnToggleArchive : AddEditLinkScreenEvent()
     object OnSave : AddEditLinkScreenEvent()

@@ -1,5 +1,6 @@
 package com.hp77.linkstash.presentation.addlink
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,8 @@ import com.hp77.linkstash.domain.usecase.tag.ManageTagsUseCase
 import com.hp77.linkstash.domain.usecase.tag.TagFilter
 import com.hp77.linkstash.domain.usecase.tag.TagOperation
 import com.hp77.linkstash.domain.repository.LinkRepository
+import com.hp77.linkstash.util.DateUtils
+import com.hp77.linkstash.util.ReminderManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,7 @@ class AddEditLinkViewModel @Inject constructor(
     private val updateLinkUseCase: UpdateLinkUseCase,
     private val manageTagsUseCase: ManageTagsUseCase,
     private val linkRepository: LinkRepository,
+    private val reminderManager: ReminderManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -140,6 +144,18 @@ class AddEditLinkViewModel @Inject constructor(
             AddEditLinkScreenEvent.OnNavigateBack -> {
                 // Handled by UI
             }
+            is AddEditLinkScreenEvent.OnSetReminder -> {
+                Log.d("AddEditLinkViewModel", "Setting reminder for timestamp: ${event.timestamp}")
+                _state.update { it.copy(reminderTime = event.timestamp) }
+            }
+            AddEditLinkScreenEvent.OnRemoveReminder -> {
+                Log.d("AddEditLinkViewModel", "Removing reminder")
+                _state.update { it.copy(reminderTime = null) }
+                state.value.linkId?.let { linkId ->
+                    Log.d("AddEditLinkViewModel", "Cancelling reminder for link: $linkId")
+                    reminderManager.cancelReminder(linkId)
+                }
+            }
         }
     }
 
@@ -181,11 +197,34 @@ class AddEditLinkViewModel @Inject constructor(
                     tags = tags
                 )
                 
+                // Cancel any existing reminder first
+                currentState.linkId?.let { linkId ->
+                    reminderManager.cancelReminder(linkId)
+                }
+
                 if (currentState.isEditMode) {
                     updateLinkUseCase(link)
                 } else {
                     addLinkUseCase(link)
                 }
+
+            // Schedule new reminder if set
+            if (link.reminderTime != null) {
+                Log.d("AddEditLinkViewModel", "Scheduling reminder for link: ${link.id}, time: ${link.reminderTime}")
+                reminderManager.scheduleReminder(link)
+                
+                // Observe reminder status
+                viewModelScope.launch {
+                    reminderManager.observeReminderStatus(link.id)
+                        .collect { state ->
+                            Log.d("AddEditLinkViewModel", """
+                                Reminder status update for link ${link.id}:
+                                - State: $state
+                                - Scheduled time: ${DateUtils.formatDateTime(link.reminderTime)}
+                            """.trimIndent())
+                        }
+                }
+            }
                 _navigateBack.value = true
             } catch (e: Exception) {
                 _state.update { it.copy(

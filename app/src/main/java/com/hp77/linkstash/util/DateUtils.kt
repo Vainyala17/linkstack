@@ -6,6 +6,11 @@ import java.util.Date
 import java.util.Locale
 
 object DateUtils {
+    fun formatDateTime(timestamp: Long): String {
+        val date = Date(timestamp)
+        return SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault()).format(date)
+    }
+
     fun formatDate(timestamp: Long): String {
         val date = Date(timestamp)
         val today = Calendar.getInstance()
