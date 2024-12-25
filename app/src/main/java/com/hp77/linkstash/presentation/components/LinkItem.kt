@@ -24,6 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hp77.linkstash.domain.model.Link
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +68,13 @@ fun LinkItem(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    
+                    Text(
+                        text = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(link.createdAt)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))

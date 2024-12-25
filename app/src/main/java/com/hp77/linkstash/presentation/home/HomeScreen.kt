@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.hp77.linkstash.presentation.components.DefaultFilters
 import com.hp77.linkstash.presentation.components.FilterChips
 import com.hp77.linkstash.presentation.components.LinkItem
@@ -119,27 +123,45 @@ fun HomeScreen(
                         )
                     }
                 } else {
+                    val groupedLinks = state.links.groupBy { link ->
+                        SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                            .format(Date(link.createdAt))
+                    }.toSortedMap(compareByDescending { it })
+
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
                             .weight(1f),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(
-                            items = state.links,
-                            key = { it.id }
-                        ) { link ->
-                            LinkItem(
-                                link = link,
-                                onLinkClick = { onNavigateToLink(it.id) },
-                                onToggleFavorite = {
-                                    viewModel.onEvent(HomeScreenEvent.OnToggleFavorite(it))
-                                },
-                                onToggleArchive = {
-                                    viewModel.onEvent(HomeScreenEvent.OnToggleArchive(it))
-                                }
-                            )
+                        groupedLinks.forEach { (date, linksForDate) ->
+                            item(key = date) {
+                                Text(
+                                    text = date,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            
+                            items(
+                                items = linksForDate,
+                                key = { it.id }
+                            ) { link ->
+                                LinkItem(
+                                    link = link,
+                                    onLinkClick = { onNavigateToLink(it.id) },
+                                    onToggleFavorite = {
+                                        viewModel.onEvent(HomeScreenEvent.OnToggleFavorite(it))
+                                    },
+                                    onToggleArchive = {
+                                        viewModel.onEvent(HomeScreenEvent.OnToggleArchive(it))
+                                    }
+                                )
+                            }
                         }
                     }
                 }
