@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +34,7 @@ import java.util.Locale
 fun LinkItem(
     link: Link,
     onLinkClick: (Link) -> Unit,
+    onWebViewClick: (Link) -> Unit,
     onToggleFavorite: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
     modifier: Modifier = Modifier
@@ -84,6 +86,13 @@ fun LinkItem(
                         imageVector = if (link.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = if (link.isFavorite) "Remove from favorites" else "Add to favorites",
                         tint = if (link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                IconButton(onClick = { onWebViewClick(link) }) {
+                    Icon(
+                        imageVector = Icons.Default.OpenInBrowser,
+                        contentDescription = "Open in browser"
                     )
                 }
 

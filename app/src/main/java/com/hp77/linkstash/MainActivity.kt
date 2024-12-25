@@ -15,6 +15,8 @@ import androidx.navigation.navArgument
 import com.hp77.linkstash.presentation.addlink.AddLinkScreen
 import com.hp77.linkstash.presentation.home.HomeScreen
 import com.hp77.linkstash.presentation.navigation.Screen
+import com.hp77.linkstash.presentation.webview.WebViewScreen
+import java.net.URLDecoder
 import com.hp77.linkstash.ui.theme.LinkStashTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -41,6 +43,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToLink = { linkId ->
                                     navController.navigate(Screen.LinkDetail.createRoute(linkId))
+                                },
+                                onNavigateToWebView = { url ->
+                                    navController.navigate(Screen.WebView.createRoute(url))
                                 }
                             )
                         }
@@ -60,6 +65,26 @@ class MainActivity : ComponentActivity() {
                             )
                         ) {
                             // TODO: Implement LinkDetailScreen
+                        }
+
+                        composable(
+                            route = Screen.WebView.route,
+                            arguments = listOf(
+                                navArgument("url") {
+                                    type = NavType.StringType
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val url = URLDecoder.decode(
+                                backStackEntry.arguments?.getString("url") ?: "",
+                                "UTF-8"
+                            )
+                            WebViewScreen(
+                                url = url,
+                                onBackPressed = {
+                                    navController.popBackStack()
+                                }
+                            )
                         }
                     }
                 }

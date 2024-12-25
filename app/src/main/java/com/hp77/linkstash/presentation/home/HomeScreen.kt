@@ -22,10 +22,16 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.hp77.linkstash.domain.model.Link
+import com.hp77.linkstash.presentation.components.OpenLinkBottomSheet
+import com.hp77.linkstash.util.UrlHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -42,10 +48,13 @@ import com.hp77.linkstash.presentation.components.TagChips
 fun HomeScreen(
     onNavigateToAddLink: () -> Unit,
     onNavigateToLink: (String) -> Unit,
+    onNavigateToWebView: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var selectedLink by remember { mutableStateOf<Link?>(null) }
 
     LaunchedEffect(state.error) {
         state.error?.let { error ->
@@ -160,6 +169,26 @@ fun HomeScreen(
                                 LinkItem(
                                     link = link,
                                     onLinkClick = { onNavigateToLink(it.id) },
+                                    onWebViewClick = { clickedLink ->
+                                        when (val urlType = UrlHandler.parseUrl(clickedLink.url)) {
+                                            is UrlHandler.UrlType.YouTube -> {
+                                                // Launch YouTube intent
+                                                context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
+                                            }
+                                            is UrlHandler.UrlType.Twitter -> {
+                                                // Launch Twitter intent
+                                                context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
+                                            }
+                                            is UrlHandler.UrlType.Instagram -> {
+                                                // Launch Instagram intent
+                                                context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
+                                            }
+                                            is UrlHandler.UrlType.Web -> {
+                                                // Show bottom sheet for web content
+                                                selectedLink = clickedLink
+                                            }
+                                        }
+                                    },
                                     onToggleFavorite = {
                                         viewModel.onEvent(HomeScreenEvent.OnToggleFavorite(it))
                                     },
@@ -173,5 +202,21 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    // Show bottom sheet if a link is selected
+    selectedLink?.let { link ->
+        OpenLinkBottomSheet(
+            link = link,
+            onDismiss = { selectedLink = null },
+            onOpenInApp = {
+                selectedLink = null
+                onNavigateToWebView(link.url)
+            },
+            onOpenInBrowser = {
+                selectedLink = null
+                context.startActivity(UrlHandler.createBrowserIntent(link.url))
+            }
+        )
     }
 }
