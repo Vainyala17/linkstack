@@ -69,7 +69,10 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                linkRepository.searchLinks(query).collect { links ->
+                linkRepository.searchLinks(
+                    query = query,
+                    tags = state.value.selectedTags.map { it.id }
+                ).collect { links ->
                     _state.update { it.copy(
                         searchResults = links,
                         isLoading = false
@@ -104,11 +107,17 @@ class SearchViewModel @Inject constructor(
                 _state.update { it.copy(
                     selectedTags = it.selectedTags + event.tag
                 )}
+                if (state.value.searchQuery.isNotEmpty()) {
+                    performSearch(state.value.searchQuery)
+                }
             }
             is SearchScreenEvent.OnTagDeselect -> {
                 _state.update { it.copy(
                     selectedTags = it.selectedTags - event.tag
                 )}
+                if (state.value.searchQuery.isNotEmpty()) {
+                    performSearch(state.value.searchQuery)
+                }
             }
             is SearchScreenEvent.OnRecentSearchClick -> {
                 _state.update { it.copy(searchQuery = event.query) }

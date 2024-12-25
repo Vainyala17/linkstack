@@ -12,7 +12,7 @@ interface LinkRepository {
     fun getActiveLinks(): Flow<List<Link>>
     fun getArchivedLinks(): Flow<List<Link>>
     fun getFavoriteLinks(): Flow<List<Link>>
-    fun searchLinks(query: String): Flow<List<Link>>
+    fun searchLinks(query: String, tags: List<String> = emptyList()): Flow<List<Link>>
     suspend fun toggleArchive(link: Link)
     suspend fun toggleFavorite(link: Link)
     suspend fun setReminder(link: Link, reminderTime: Long)

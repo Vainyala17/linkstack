@@ -90,8 +90,8 @@ class LinkRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun searchLinks(query: String): Flow<List<Link>> {
-        return linkDao.searchLinks(query).map { links ->
+    override fun searchLinks(query: String, tags: List<String>): Flow<List<Link>> {
+        return linkDao.searchLinks(query, tags).map { links ->
             links.map { it.toLink() }
         }
     }
