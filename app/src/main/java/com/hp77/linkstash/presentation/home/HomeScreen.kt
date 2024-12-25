@@ -172,8 +172,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .weight(1f),
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         groupedLinks.forEach { (date, linksForDate) ->
                             item(key = date) {

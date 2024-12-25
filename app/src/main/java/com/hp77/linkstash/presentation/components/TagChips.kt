@@ -26,12 +26,24 @@ fun TagChips(
     selectedTags: List<Tag> = emptyList(),
     onTagClick: (Tag) -> Unit = {},
     onTagRemove: ((Tag) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enableScroll: Boolean = true,
+    horizontalPadding: Boolean = true
 ) {
     Row(
-        modifier = modifier
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
+        modifier = modifier.then(
+            if (enableScroll) {
+                Modifier.horizontalScroll(rememberScrollState())
+            } else {
+                Modifier
+            }
+        ).then(
+            if (horizontalPadding) {
+                Modifier.padding(horizontal = 16.dp)
+            } else {
+                Modifier
+            }
+        )
     ) {
         tags.forEach { tag ->
             val isSelected = tag in selectedTags
