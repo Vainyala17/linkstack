@@ -1,7 +1,6 @@
 package com.hp77.linkstash.presentation.home
 
 import com.hp77.linkstash.domain.model.Link
-
 import com.hp77.linkstash.domain.model.LinkFilter
 
 sealed class HomeScreenEvent {
@@ -14,4 +13,5 @@ sealed class HomeScreenEvent {
     object OnMenuDismiss : HomeScreenEvent()
     object OnProfileClick : HomeScreenEvent()
     object OnProfileDismiss : HomeScreenEvent()
+    data class OnToggleStatus(val link: Link) : HomeScreenEvent()
 }

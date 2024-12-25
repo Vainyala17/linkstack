@@ -27,6 +27,7 @@ fun SearchScreen(
     onEditLink: (Link) -> Unit,
     onToggleFavorite: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
+    onToggleStatus: (Link) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -93,7 +94,8 @@ fun SearchScreen(
                             onLinkClick = onNavigateToLink,
                             onEditClick = onEditLink,
                             onToggleFavorite = onToggleFavorite,
-                            onToggleArchive = onToggleArchive
+                            onToggleArchive = onToggleArchive,
+                            onToggleStatus = onToggleStatus
                         )
                     }
                 }

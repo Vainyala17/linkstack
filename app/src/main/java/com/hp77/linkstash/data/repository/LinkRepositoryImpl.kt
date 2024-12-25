@@ -121,4 +121,13 @@ class LinkRepositoryImpl @Inject constructor(
         val updatedLink = link.copy(reminderTime = null)
         updateLink(updatedLink)
     }
+
+    override suspend fun toggleStatus(link: Link) {
+        val now = System.currentTimeMillis()
+        val updatedLink = link.copy(
+            isCompleted = !link.isCompleted,
+            completedAt = if (!link.isCompleted) now else null
+        )
+        updateLink(updatedLink)
+    }
 }

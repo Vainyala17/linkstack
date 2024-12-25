@@ -6,6 +6,7 @@ import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.model.LinkFilter
 import com.hp77.linkstash.domain.usecase.link.GetLinksUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
+import com.hp77.linkstash.domain.usecase.link.ToggleLinkStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getLinksUseCase: GetLinksUseCase,
-    private val updateLinkStateUseCase: UpdateLinkStateUseCase
+    private val updateLinkStateUseCase: UpdateLinkStateUseCase,
+    private val toggleLinkStatusUseCase: ToggleLinkStatusUseCase
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -64,24 +66,24 @@ class HomeViewModel @Inject constructor(
         )
     }
 
-val state: StateFlow<HomeScreenState> = combine(
-    _links,
-    _searchQuery,
-    _error,
-    _isLoading,
-    _showMenu,
-    _showProfile,
-    _selectedFilter
-) { args -> 
-    ViewModelState(
-        links = args[0] as List<Link>,
-        query = args[1] as String,
-        error = args[2] as String?,
-        isLoading = args[3] as Boolean,
-        showMenu = args[4] as Boolean,
-        showProfile = args[5] as Boolean,
-        selectedFilter = args[6] as LinkFilter
-    ).toHomeScreenState()
+    val state: StateFlow<HomeScreenState> = combine(
+        _links,
+        _searchQuery,
+        _error,
+        _isLoading,
+        _showMenu,
+        _showProfile,
+        _selectedFilter
+    ) { args -> 
+        ViewModelState(
+            links = args[0] as List<Link>,
+            query = args[1] as String,
+            error = args[2] as String?,
+            isLoading = args[3] as Boolean,
+            showMenu = args[4] as Boolean,
+            showProfile = args[5] as Boolean,
+            selectedFilter = args[6] as LinkFilter
+        ).toHomeScreenState()
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -113,6 +115,15 @@ val state: StateFlow<HomeScreenState> = combine(
                         updateLinkStateUseCase(
                             com.hp77.linkstash.domain.usecase.link.LinkStateUpdate.ToggleArchive(event.link)
                         )
+                    } catch (e: Exception) {
+                        _error.value = e.message
+                    }
+                }
+            }
+            is HomeScreenEvent.OnToggleStatus -> {
+                viewModelScope.launch {
+                    try {
+                        toggleLinkStatusUseCase(event.link)
                     } catch (e: Exception) {
                         _error.value = e.message
                     }

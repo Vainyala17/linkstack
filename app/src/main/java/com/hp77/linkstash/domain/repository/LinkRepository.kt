@@ -17,4 +17,5 @@ interface LinkRepository {
     suspend fun toggleFavorite(link: Link)
     suspend fun setReminder(link: Link, reminderTime: Long)
     suspend fun clearReminder(link: Link)
+    suspend fun toggleStatus(link: Link)
 }

@@ -6,10 +6,13 @@ data class Link(
     val title: String?,
     val description: String?,
     val previewImageUrl: String?,
+    val type: LinkType = LinkType.OTHER,
     val createdAt: Long,
     val reminderTime: Long?,
     val isArchived: Boolean,
     val isFavorite: Boolean,
+    val isCompleted: Boolean = false,
+    val completedAt: Long? = null,
     val tags: List<Tag>
 ) {
     companion object {
@@ -19,13 +22,14 @@ data class Link(
             title = null,
             description = null,
             previewImageUrl = null,
+            type = LinkType.OTHER,
             createdAt = System.currentTimeMillis(),
             reminderTime = null,
             isArchived = false,
             isFavorite = false,
+            isCompleted = false,
+            completedAt = null,
             tags = emptyList()
         )
     }
 }
-
-

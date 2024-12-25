@@ -200,6 +200,9 @@ fun HomeScreen(
                                     },
                                     onToggleArchive = {
                                         viewModel.onEvent(HomeScreenEvent.OnToggleArchive(it))
+                                    },
+                                    onToggleStatus = {
+                                        viewModel.onEvent(HomeScreenEvent.OnToggleStatus(it))
                                     }
                                 )
                             }

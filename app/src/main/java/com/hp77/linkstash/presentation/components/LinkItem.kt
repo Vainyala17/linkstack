@@ -37,6 +37,7 @@ fun LinkItem(
     onEditClick: (Link) -> Unit,
     onToggleFavorite: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
+    onToggleStatus: (Link) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -111,6 +112,35 @@ fun LinkItem(
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = link.type.getStatusLabel(link.isCompleted),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (link.isCompleted) 
+                            MaterialTheme.colorScheme.primary 
+                        else 
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    link.completedAt?.let { timestamp ->
+                        Text(
+                            text = "Updated: ${SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(timestamp))}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                androidx.compose.material3.Switch(
+                    checked = link.isCompleted,
+                    onCheckedChange = { onToggleStatus(link) }
                 )
             }
 

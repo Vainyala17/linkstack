@@ -4,6 +4,19 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.UUID
 
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Add type column with default value OTHER
+        database.execSQL("ALTER TABLE links ADD COLUMN type TEXT NOT NULL DEFAULT 'OTHER'")
+        
+        // Add isCompleted column with default value 0 (false)
+        database.execSQL("ALTER TABLE links ADD COLUMN isCompleted INTEGER NOT NULL DEFAULT 0")
+        
+        // Add completedAt column (nullable)
+        database.execSQL("ALTER TABLE links ADD COLUMN completedAt INTEGER")
+    }
+}
+
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(database: SupportSQLiteDatabase) {
         // Create the tags table if it doesn't exist

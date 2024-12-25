@@ -91,6 +91,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onToggleArchive = { link ->
                                     // Handle in SearchScreen
+                                },
+                                onToggleStatus = {
+                                    link ->
                                 }
                             )
                         }

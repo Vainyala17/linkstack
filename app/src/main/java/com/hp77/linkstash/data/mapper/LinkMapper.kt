@@ -12,10 +12,13 @@ fun LinkEntity.toLink() = Link(
     title = title,
     description = description,
     previewImageUrl = previewImageUrl,
+    type = type,
     createdAt = createdAt,
     reminderTime = reminderTime,
     isArchived = isArchived,
     isFavorite = isFavorite,
+    isCompleted = isCompleted,
+    completedAt = completedAt,
     tags = emptyList()
 )
 
@@ -25,10 +28,13 @@ fun Link.toLinkEntity() = LinkEntity(
     title = title,
     description = description,
     previewImageUrl = previewImageUrl,
+    type = type,
     createdAt = createdAt,
     reminderTime = reminderTime,
     isArchived = isArchived,
-    isFavorite = isFavorite
+    isFavorite = isFavorite,
+    isCompleted = isCompleted,
+    completedAt = completedAt
 )
 
 fun TagEntity.toTag() = Tag(

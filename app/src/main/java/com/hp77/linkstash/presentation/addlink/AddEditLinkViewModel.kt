@@ -13,6 +13,7 @@ import com.hp77.linkstash.domain.usecase.tag.TagFilter
 import com.hp77.linkstash.domain.usecase.tag.TagOperation
 import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.util.DateUtils
+import com.hp77.linkstash.util.LinkTypeUtils
 import com.hp77.linkstash.util.ReminderManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,10 +59,17 @@ class AddEditLinkViewModel @Inject constructor(
     fun onEvent(event: AddEditLinkScreenEvent) {
         when (event) {
             is AddEditLinkScreenEvent.OnUrlChange -> {
-                _state.update { it.copy(
-                    url = event.url,
-                    isUrlError = false
-                ) }
+                val suggestedTags = LinkTypeUtils.getSuggestedTags(event.url)
+                _state.update { currentState ->
+                    currentState.copy(
+                        url = event.url,
+                        isUrlError = false,
+                        // Add suggested tags to available tags if they don't exist
+                        availableTags = currentState.availableTags + suggestedTags - currentState.availableTags.toSet(),
+                        // Auto-select suggested tags if they're not already selected
+                        selectedTags = currentState.selectedTags + suggestedTags.take(1)
+                    )
+                }
             }
             is AddEditLinkScreenEvent.OnTitleChange -> {
                 _state.update { it.copy(title = event.title) }
@@ -183,17 +191,23 @@ class AddEditLinkViewModel @Inject constructor(
                     }
                 }
 
-                // Create or update link with the collected tags
+                // Infer link type from selected tags
+                val linkType = LinkTypeUtils.inferLinkType(currentState.selectedTags)
+
+                // Create or update link with the collected tags and inferred type
                 val link = Link(
                     id = currentState.linkId ?: UUID.randomUUID().toString(),
                     url = currentState.url,
                     title = currentState.title?.takeIf { it.isNotBlank() },
                     description = currentState.description?.takeIf { it.isNotBlank() },
                     previewImageUrl = null,
+                    type = linkType,
                     createdAt = currentState.createdAt,
                     reminderTime = currentState.reminderTime,
                     isArchived = currentState.isArchived,
                     isFavorite = currentState.isFavorite,
+                    isCompleted = false,
+                    completedAt = null,
                     tags = tags
                 )
                 
