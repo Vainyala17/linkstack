@@ -7,6 +7,8 @@ import com.hp77.linkstash.domain.model.LinkFilter
 import com.hp77.linkstash.domain.usecase.link.GetLinksUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
 import com.hp77.linkstash.domain.usecase.link.ToggleLinkStatusUseCase
+import com.hp77.linkstash.data.preferences.ThemeMode
+import com.hp77.linkstash.data.preferences.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +24,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val getLinksUseCase: GetLinksUseCase,
     private val updateLinkStateUseCase: UpdateLinkStateUseCase,
-    private val toggleLinkStatusUseCase: ToggleLinkStatusUseCase
+    private val toggleLinkStatusUseCase: ToggleLinkStatusUseCase,
+    private val themePreferences: ThemePreferences
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -31,6 +34,15 @@ class HomeViewModel @Inject constructor(
     private val _showMenu = MutableStateFlow(false)
     private val _showProfile = MutableStateFlow(false)
     private val _selectedFilter = MutableStateFlow<LinkFilter>(LinkFilter.All)
+    private val _currentTheme = MutableStateFlow(ThemeMode.SYSTEM)
+
+    init {
+        viewModelScope.launch {
+            themePreferences.themeMode.collect { theme ->
+                _currentTheme.value = theme
+            }
+        }
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val _links = combine(
@@ -53,7 +65,8 @@ class HomeViewModel @Inject constructor(
         val isLoading: Boolean,
         val showMenu: Boolean,
         val showProfile: Boolean,
-        val selectedFilter: LinkFilter
+        val selectedFilter: LinkFilter,
+        val currentTheme: ThemeMode
     ) {
         fun toHomeScreenState() = HomeScreenState(
             links = links,
@@ -62,7 +75,8 @@ class HomeViewModel @Inject constructor(
             isLoading = isLoading,
             showMenu = showMenu,
             showProfile = showProfile,
-            selectedFilter = selectedFilter
+            selectedFilter = selectedFilter,
+            currentTheme = currentTheme
         )
     }
 
@@ -73,7 +87,8 @@ class HomeViewModel @Inject constructor(
         _isLoading,
         _showMenu,
         _showProfile,
-        _selectedFilter
+        _selectedFilter,
+        _currentTheme
     ) { args -> 
         ViewModelState(
             links = args[0] as List<Link>,
@@ -82,7 +97,8 @@ class HomeViewModel @Inject constructor(
             isLoading = args[3] as Boolean,
             showMenu = args[4] as Boolean,
             showProfile = args[5] as Boolean,
-            selectedFilter = args[6] as LinkFilter
+            selectedFilter = args[6] as LinkFilter,
+            currentTheme = args[7] as ThemeMode
         ).toHomeScreenState()
     }.stateIn(
         scope = viewModelScope,
@@ -124,6 +140,15 @@ class HomeViewModel @Inject constructor(
                 viewModelScope.launch {
                     try {
                         toggleLinkStatusUseCase(event.link)
+                    } catch (e: Exception) {
+                        _error.value = e.message
+                    }
+                }
+            }
+            is HomeScreenEvent.OnThemeSelect -> {
+                viewModelScope.launch {
+                    try {
+                        themePreferences.updateThemeMode(event.theme)
                     } catch (e: Exception) {
                         _error.value = e.message
                     }

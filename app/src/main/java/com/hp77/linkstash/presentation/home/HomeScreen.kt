@@ -8,11 +8,14 @@ import androidx.compose.ui.graphics.Color
 import com.hp77.linkstash.presentation.components.NoRippleInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import com.hp77.linkstash.data.preferences.ThemeMode
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -25,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -217,8 +221,44 @@ fun HomeScreen(
         AlertDialog(
             onDismissRequest = { viewModel.onEvent(HomeScreenEvent.OnMenuDismiss) },
             icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            title = { Text("Menu") },
-            text = { Text("Menu options coming soon!") },
+            title = { Text("Settings") },
+            text = {
+                Column {
+                    Text(
+                        text = "Theme",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    ThemeMode.values().forEach { theme ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { 
+                                    viewModel.onEvent(HomeScreenEvent.OnThemeSelect(theme))
+                                    viewModel.onEvent(HomeScreenEvent.OnMenuDismiss)
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = state.currentTheme == theme,
+                                onClick = { 
+                                    viewModel.onEvent(HomeScreenEvent.OnThemeSelect(theme))
+                                    viewModel.onEvent(HomeScreenEvent.OnMenuDismiss)
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = when(theme) {
+                                    ThemeMode.LIGHT -> "Light"
+                                    ThemeMode.DARK -> "Dark"
+                                    ThemeMode.SYSTEM -> "System default"
+                                }
+                            )
+                        }
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = { viewModel.onEvent(HomeScreenEvent.OnMenuDismiss) }) {
                     Text("Close")
