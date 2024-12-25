@@ -62,11 +62,22 @@ private fun handleLinkClick(
     onWebContent: (Link) -> Unit
 ) {
     when (val urlType = UrlHandler.parseUrl(clickedLink.url)) {
-        is UrlHandler.UrlType.YouTube,
+        is UrlHandler.UrlType.YouTube -> {
+            // Try to open in YouTube app, fallback to WebView
+            try {
+                context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
+            } catch (e: Exception) {
+                onWebContent(clickedLink)
+            }
+        }
         is UrlHandler.UrlType.Twitter,
         is UrlHandler.UrlType.Instagram -> {
-            // Launch appropriate app intent
-            context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
+            // Try to open in respective app, fallback to WebView
+            try {
+                context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
+            } catch (e: Exception) {
+                onWebContent(clickedLink)
+            }
         }
         is UrlHandler.UrlType.Web -> {
             // Show bottom sheet for web content
@@ -82,6 +93,7 @@ fun HomeScreen(
     onNavigateToEdit: (Link) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToWebView: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -321,7 +333,7 @@ fun HomeScreen(
             onDismiss = { selectedLink = null },
             onOpenInApp = {
                 selectedLink = null
-                context.startActivity(UrlHandler.createIntent(context, link.url))
+                onNavigateToWebView(link.url)
             },
             onOpenInBrowser = {
                 selectedLink = null
