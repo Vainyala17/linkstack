@@ -80,6 +80,7 @@ fun HomeScreen(
     onNavigateToAddLink: () -> Unit,
     onNavigateToEdit: (Link) -> Unit,
     onNavigateToSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -206,6 +207,9 @@ fun HomeScreen(
                                     },
                                     onToggleStatus = {
                                         viewModel.onEvent(HomeScreenEvent.OnToggleStatus(it))
+                                    },
+                                    onShareToHackerNews = {
+                                        viewModel.onEvent(HomeScreenEvent.OnShareToHackerNews(it))
                                     }
                                 )
                             }
@@ -224,6 +228,33 @@ fun HomeScreen(
             title = { Text("Settings") },
             text = {
                 Column {
+                    // Settings Button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                interactionSource = NoRippleInteractionSource(),
+                                indication = null
+                            ) {
+                                viewModel.onEvent(HomeScreenEvent.OnMenuDismiss)
+                                onNavigateToSettings()
+                            }
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Settings",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings"
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Text(
                         text = "Theme",
                         style = MaterialTheme.typography.titleMedium,
@@ -298,6 +329,12 @@ fun HomeScreen(
             onEdit = {
                 selectedLink = null
                 onNavigateToEdit(link)
+            },
+            onOpenHackerNews = link.hackerNewsUrl?.let { hnUrl ->
+                {
+                    selectedLink = null
+                    context.startActivity(UrlHandler.createBrowserIntent(hnUrl))
+                }
             }
         )
     }

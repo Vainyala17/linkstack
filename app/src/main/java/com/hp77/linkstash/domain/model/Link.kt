@@ -13,6 +13,13 @@ data class Link(
     val isFavorite: Boolean,
     val isCompleted: Boolean = false,
     val completedAt: Long? = null,
+    val notes: String? = null,
+    // HackerNews integration
+    val hackerNewsId: String? = null,
+    val hackerNewsUrl: String? = null,
+    // GitHub sync
+    val lastSyncedAt: Long? = null,
+    val syncError: String? = null,
     val tags: List<Tag>
 ) {
     companion object {
@@ -29,6 +36,11 @@ data class Link(
             isFavorite = false,
             isCompleted = false,
             completedAt = null,
+            notes = null,
+            hackerNewsId = null,
+            hackerNewsUrl = null,
+            lastSyncedAt = null,
+            syncError = null,
             tags = emptyList()
         )
     }

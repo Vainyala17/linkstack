@@ -6,6 +6,7 @@ import com.hp77.linkstash.data.preferences.SearchPreferences
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.domain.repository.TagRepository
+import com.hp77.linkstash.domain.usecase.link.ShareToHackerNewsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +19,8 @@ import javax.inject.Inject
 class SearchViewModel @Inject constructor(
     private val linkRepository: LinkRepository,
     private val tagRepository: TagRepository,
-    private val searchPreferences: SearchPreferences
+    private val searchPreferences: SearchPreferences,
+    private val shareToHackerNewsUseCase: ShareToHackerNewsUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SearchScreenState())
@@ -124,6 +126,18 @@ class SearchViewModel @Inject constructor(
             }
             SearchScreenEvent.OnErrorDismiss -> {
                 _state.update { it.copy(error = null) }
+            }
+            is SearchScreenEvent.OnShareToHackerNews -> {
+                viewModelScope.launch {
+                    try {
+                        val result = shareToHackerNewsUseCase(event.link.id.toLong())
+                        if (result.isFailure) {
+                            throw result.exceptionOrNull() ?: Exception("Unknown error")
+                        }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(error = e.message) }
+                    }
+                }
             }
         }
     }

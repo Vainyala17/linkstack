@@ -16,4 +16,6 @@ sealed class HomeScreenEvent {
     object OnProfileClick : HomeScreenEvent()
     object OnProfileDismiss : HomeScreenEvent()
     data class OnToggleStatus(val link: Link) : HomeScreenEvent()
+    data class OnShareToHackerNews(val link: Link) : HomeScreenEvent()
+    object NavigateToSettings : HomeScreenEvent()
 }

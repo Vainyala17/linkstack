@@ -115,6 +115,7 @@ dependencies {
     // Network & Parsing
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
+    implementation(libs.retrofit.converter.scalars)
     implementation(libs.okhttp.logging)
     implementation(libs.jsoup)
 
@@ -129,6 +130,9 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
     kapt(libs.androidx.hilt.compiler)
+
+    // Markdown
+    implementation(libs.markdown)
 
     // Testing
     testImplementation(libs.junit)

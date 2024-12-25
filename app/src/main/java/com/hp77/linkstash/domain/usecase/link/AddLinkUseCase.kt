@@ -7,7 +7,7 @@ import javax.inject.Inject
 class AddLinkUseCase @Inject constructor(
     private val repository: LinkRepository
 ) {
-    suspend operator fun invoke(link: Link) {
+    suspend operator fun invoke(link: Link): Result<Unit> = runCatching {
         require(link.url.isNotBlank()) { "URL cannot be empty" }
         require(link.tags.isNotEmpty()) { "At least one tag is required" }
         repository.insertLink(link)

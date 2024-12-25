@@ -19,6 +19,11 @@ fun LinkEntity.toLink() = Link(
     isFavorite = isFavorite,
     isCompleted = isCompleted,
     completedAt = completedAt,
+    notes = notes,
+    hackerNewsId = hackerNewsId,
+    hackerNewsUrl = hackerNewsUrl,
+    lastSyncedAt = lastSyncedAt,
+    syncError = syncError,
     tags = emptyList()
 )
 
@@ -34,7 +39,12 @@ fun Link.toLinkEntity() = LinkEntity(
     isArchived = isArchived,
     isFavorite = isFavorite,
     isCompleted = isCompleted,
-    completedAt = completedAt
+    completedAt = completedAt,
+    notes = notes,
+    hackerNewsId = hackerNewsId,
+    hackerNewsUrl = hackerNewsUrl,
+    lastSyncedAt = lastSyncedAt,
+    syncError = syncError
 )
 
 fun TagEntity.toTag() = Tag(

@@ -7,6 +7,8 @@ import com.hp77.linkstash.domain.usecase.link.GetLinksUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkUseCase
 import com.hp77.linkstash.domain.usecase.link.ToggleLinkStatusUseCase
+import com.hp77.linkstash.domain.usecase.link.ShareToHackerNewsUseCase
+import com.hp77.linkstash.data.repository.HackerNewsRepository
 import com.hp77.linkstash.domain.usecase.tag.ManageTagsUseCase
 import dagger.Module
 import dagger.Provides
@@ -53,4 +55,11 @@ object UseCaseModule {
     fun provideToggleLinkStatusUseCase(
         repository: LinkRepository
     ): ToggleLinkStatusUseCase = ToggleLinkStatusUseCase(repository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideShareToHackerNewsUseCase(
+        hackerNewsRepository: HackerNewsRepository,
+        linkRepository: LinkRepository
+    ): ShareToHackerNewsUseCase = ShareToHackerNewsUseCase(hackerNewsRepository, linkRepository)
 }

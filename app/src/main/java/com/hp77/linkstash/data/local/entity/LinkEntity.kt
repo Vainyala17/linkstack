@@ -19,5 +19,12 @@ data class LinkEntity(
     val isArchived: Boolean = false,
     val isFavorite: Boolean = false,
     val isCompleted: Boolean = false,
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+    val notes: String? = null,
+    // HackerNews integration
+    val hackerNewsId: String? = null,
+    val hackerNewsUrl: String? = null,
+    // GitHub sync
+    val lastSyncedAt: Long? = null,
+    val syncError: String? = null
 )

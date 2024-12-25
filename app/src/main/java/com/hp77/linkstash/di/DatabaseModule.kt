@@ -7,6 +7,7 @@ import com.hp77.linkstash.data.local.dao.LinkDao
 import com.hp77.linkstash.data.local.dao.TagDao
 import com.hp77.linkstash.data.local.migrations.MIGRATION_1_2
 import com.hp77.linkstash.data.local.migrations.MIGRATION_2_3
+import com.hp77.linkstash.data.local.migrations.MIGRATION_3_4
 import com.hp77.linkstash.data.repository.LinkRepositoryImpl
 import com.hp77.linkstash.data.repository.TagRepositoryImpl
 import com.hp77.linkstash.domain.repository.LinkRepository
@@ -32,7 +33,7 @@ object DatabaseModule {
             LinkStashDatabase::class.java,
             LinkStashDatabase.DATABASE_NAME
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration() // Allow fallback if migration fails
             .build()
     }

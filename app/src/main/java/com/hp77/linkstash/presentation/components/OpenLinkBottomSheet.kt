@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -28,7 +29,8 @@ fun OpenLinkBottomSheet(
     onDismiss: () -> Unit,
     onOpenInApp: () -> Unit,
     onOpenInBrowser: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onOpenHackerNews: (() -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState()
 
@@ -70,6 +72,19 @@ fun OpenLinkBottomSheet(
                 },
                 modifier = Modifier.clickable(onClick = onOpenInBrowser)
             )
+
+            if (link.hackerNewsUrl != null && onOpenHackerNews != null) {
+                ListItem(
+                    headlineContent = { Text("View HackerNews discussion") },
+                    leadingContent = {
+                        Icon(
+                            imageVector = Icons.Default.Forum,
+                            contentDescription = "View HackerNews discussion"
+                        )
+                    },
+                    modifier = Modifier.clickable(onClick = onOpenHackerNews)
+                )
+            }
 
             ListItem(
                 headlineContent = { Text("Edit") },

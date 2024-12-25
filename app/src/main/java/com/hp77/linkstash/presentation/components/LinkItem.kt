@@ -25,6 +25,10 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Launch
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedAssistChip
@@ -51,6 +55,7 @@ private fun LinkActions(
     onToggleFavorite: (Link) -> Unit,
     onEditClick: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
+    onShareToHackerNews: (Link) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -77,10 +82,27 @@ private fun LinkActions(
                 contentDescription = if (link.isArchived) "Unarchive" else "Archive"
             )
         }
-        IconButton(onClick = { /* TODO: Implement download */ }) {
+        IconButton(onClick = { onShareToHackerNews(link) }) {
             Icon(
-                imageVector = Icons.Default.Share,
-                contentDescription = "Share image"
+                imageVector = if (link.hackerNewsUrl != null) Icons.Default.Launch else Icons.Default.Share,
+                contentDescription = if (link.hackerNewsUrl != null) "View on HackerNews" else "Share to HackerNews"
+            )
+        }
+        if (link.lastSyncedAt != null) {
+            Icon(
+                imageVector = if (link.syncError != null) 
+                    Icons.Default.CloudOff 
+                else 
+                    Icons.Default.CloudDone,
+                contentDescription = if (link.syncError != null) 
+                    "Sync error: ${link.syncError}" 
+                else 
+                    "Synced to GitHub",
+                tint = if (link.syncError != null)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(8.dp)
             )
         }
     }
@@ -121,6 +143,7 @@ fun LinkItem(
     onToggleFavorite: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
     onToggleStatus: (Link) -> Unit,
+    onShareToHackerNews: (Link) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dateFormatter = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
@@ -251,7 +274,8 @@ fun LinkItem(
                         ),
                         onToggleFavorite = onToggleFavorite,
                         onEditClick = onEditClick,
-                        onToggleArchive = onToggleArchive
+                        onToggleArchive = onToggleArchive,
+                        onShareToHackerNews = onShareToHackerNews
                     )
                 }
             }

@@ -16,7 +16,7 @@ import com.hp77.linkstash.data.local.entity.TagEntity
         TagEntity::class,
         LinkTagCrossRef::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

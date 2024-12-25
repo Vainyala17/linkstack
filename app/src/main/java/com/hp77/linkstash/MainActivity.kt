@@ -24,6 +24,7 @@ import com.hp77.linkstash.presentation.home.HomeScreen
 import com.hp77.linkstash.presentation.navigation.Screen
 import com.hp77.linkstash.presentation.search.SearchScreen
 import com.hp77.linkstash.presentation.webview.WebViewScreen
+import com.hp77.linkstash.presentation.settings.SettingsScreen
 import java.net.URLDecoder
 import com.hp77.linkstash.data.preferences.ThemePreferences
 import com.hp77.linkstash.data.preferences.ThemeMode
@@ -88,6 +89,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToSearch = {
                                     navController.navigate(Screen.Search.route)
+                                },
+                                onNavigateToSettings = {
+                                    navController.navigate(Screen.Settings.route)
                                 }
                             )
                         }
@@ -128,11 +132,13 @@ class MainActivity : ComponentActivity() {
                                     type = NavType.StringType
                                 }
                             )
-                        ) {
+                        ) { backStackEntry ->
+                            val linkId = backStackEntry.arguments?.getString("linkId")
                             AddEditLinkScreen(
                                 onNavigateBack = {
                                     navController.popBackStack()
-                                }
+                                },
+                                linkId = linkId
                             )
                         }
 
@@ -151,6 +157,14 @@ class MainActivity : ComponentActivity() {
                             WebViewScreen(
                                 url = url,
                                 onBackPressed = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        composable(Screen.Settings.route) {
+                            SettingsScreen(
+                                onNavigateBack = {
                                     navController.popBackStack()
                                 }
                             )

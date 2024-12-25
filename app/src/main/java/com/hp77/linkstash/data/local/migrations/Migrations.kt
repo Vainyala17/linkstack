@@ -4,6 +4,21 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.UUID
 
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Add notes field
+        database.execSQL("ALTER TABLE links ADD COLUMN notes TEXT")
+        
+        // Add HackerNews integration columns
+        database.execSQL("ALTER TABLE links ADD COLUMN hackerNewsId TEXT")
+        database.execSQL("ALTER TABLE links ADD COLUMN hackerNewsUrl TEXT")
+        
+        // Add GitHub sync columns
+        database.execSQL("ALTER TABLE links ADD COLUMN lastSyncedAt INTEGER")
+        database.execSQL("ALTER TABLE links ADD COLUMN syncError TEXT")
+    }
+}
+
 val MIGRATION_2_3 = object : Migration(2, 3) {
     override fun migrate(database: SupportSQLiteDatabase) {
         // Add type column with default value OTHER

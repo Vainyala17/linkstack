@@ -7,6 +7,7 @@ import com.hp77.linkstash.domain.model.LinkFilter
 import com.hp77.linkstash.domain.usecase.link.GetLinksUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
 import com.hp77.linkstash.domain.usecase.link.ToggleLinkStatusUseCase
+import com.hp77.linkstash.domain.usecase.link.ShareToHackerNewsUseCase
 import com.hp77.linkstash.data.preferences.ThemeMode
 import com.hp77.linkstash.data.preferences.ThemePreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +26,8 @@ class HomeViewModel @Inject constructor(
     private val getLinksUseCase: GetLinksUseCase,
     private val updateLinkStateUseCase: UpdateLinkStateUseCase,
     private val toggleLinkStatusUseCase: ToggleLinkStatusUseCase,
-    private val themePreferences: ThemePreferences
+    private val themePreferences: ThemePreferences,
+    private val shareToHackerNewsUseCase: ShareToHackerNewsUseCase
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -168,6 +170,21 @@ class HomeViewModel @Inject constructor(
             }
             HomeScreenEvent.OnProfileDismiss -> {
                 _showProfile.value = false
+            }
+            is HomeScreenEvent.OnShareToHackerNews -> {
+                viewModelScope.launch {
+                    try {
+                        val result = shareToHackerNewsUseCase(event.link.id.toLong())
+                        if (result.isFailure) {
+                            throw result.exceptionOrNull() ?: Exception("Unknown error")
+                        }
+                    } catch (e: Exception) {
+                        _error.value = e.message
+                    }
+                }
+            }
+            HomeScreenEvent.NavigateToSettings -> {
+                // Navigation is handled by the UI
             }
         }
     }

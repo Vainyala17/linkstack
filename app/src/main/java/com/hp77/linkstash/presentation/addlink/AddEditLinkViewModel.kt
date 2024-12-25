@@ -1,57 +1,44 @@
 package com.hp77.linkstash.presentation.addlink
 
-import com.hp77.linkstash.util.Logger
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hp77.linkstash.domain.model.Link
-import com.hp77.linkstash.domain.model.Tag
 import com.hp77.linkstash.domain.usecase.link.AddLinkUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkUseCase
-import com.hp77.linkstash.domain.usecase.tag.ManageTagsUseCase
-import com.hp77.linkstash.domain.usecase.tag.TagFilter
-import com.hp77.linkstash.domain.usecase.tag.TagOperation
 import com.hp77.linkstash.domain.repository.LinkRepository
-import com.hp77.linkstash.util.DateUtils
-import com.hp77.linkstash.util.LinkTypeUtils
-import com.hp77.linkstash.util.ReminderManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class AddEditLinkViewModel @Inject constructor(
     private val addLinkUseCase: AddLinkUseCase,
     private val updateLinkUseCase: UpdateLinkUseCase,
-    private val manageTagsUseCase: ManageTagsUseCase,
     private val linkRepository: LinkRepository,
-    private val reminderManager: ReminderManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddEditLinkScreenState())
-    val state: StateFlow<AddEditLinkScreenState> = _state.asStateFlow()
-    
-    private val _navigateBack = MutableStateFlow(false)
-    val navigateBack: StateFlow<Boolean> = _navigateBack.asStateFlow()
+    val state: StateFlow<AddEditLinkScreenState> = _state
 
     init {
-        loadTags()
-        // Check if we're in edit mode by looking for linkId parameter
         savedStateHandle.get<String>("linkId")?.let { linkId ->
-            onEvent(AddEditLinkScreenEvent.OnInitializeEdit(linkId))
-        }
-    }
-
-    private fun loadTags() {
-        viewModelScope.launch {
-            manageTagsUseCase.getTags(TagFilter.All).collect { tags ->
-                _state.update { it.copy(availableTags = tags.map { tag -> tag.name }) }
+            viewModelScope.launch {
+                linkRepository.getLinkById(linkId)?.let { link ->
+                    _state.update { it.copy(
+                        url = link.url,
+                        title = link.title,
+                        description = link.description,
+                        notes = link.notes,
+                        reminderTime = link.reminderTime,
+                        isEditMode = true,
+                        linkId = linkId
+                    ) }
+                }
             }
         }
     }
@@ -59,193 +46,112 @@ class AddEditLinkViewModel @Inject constructor(
     fun onEvent(event: AddEditLinkScreenEvent) {
         when (event) {
             is AddEditLinkScreenEvent.OnUrlChange -> {
-                val suggestedTags = LinkTypeUtils.getSuggestedTags(event.url)
-                _state.update { currentState ->
-                    currentState.copy(
-                        url = event.url,
-                        isUrlError = false,
-                        // Add suggested tags to available tags if they don't exist
-                        availableTags = currentState.availableTags + suggestedTags - currentState.availableTags.toSet(),
-                        // Auto-select suggested tags if they're not already selected
-                        selectedTags = currentState.selectedTags + suggestedTags.take(1)
-                    )
-                }
+                _state.update { it.copy(url = event.url) }
             }
             is AddEditLinkScreenEvent.OnTitleChange -> {
-                _state.update { it.copy(title = event.title) }
+                _state.update { it.copy(title = event.title.ifEmpty { null }) }
             }
             is AddEditLinkScreenEvent.OnDescriptionChange -> {
-                _state.update { it.copy(description = event.description) }
+                _state.update { it.copy(description = event.description.ifEmpty { null }) }
+            }
+            is AddEditLinkScreenEvent.OnNotesChange -> {
+                _state.update { it.copy(notes = event.notes.ifEmpty { null }) }
+            }
+            is AddEditLinkScreenEvent.OnReminderTimeChange -> {
+                _state.update { it.copy(reminderTime = event.time) }
+            }
+            is AddEditLinkScreenEvent.OnSetReminder -> {
+                _state.update { it.copy(reminderTime = event.timestamp) }
+            }
+            is AddEditLinkScreenEvent.OnRemoveReminder -> {
+                _state.update { it.copy(reminderTime = null) }
             }
             is AddEditLinkScreenEvent.OnTagSelect -> {
-                _state.update { it.copy(
-                    selectedTags = it.selectedTags + event.tag
-                ) }
+                // TODO: Implement tag selection
             }
             is AddEditLinkScreenEvent.OnTagDeselect -> {
-                _state.update { it.copy(
-                    selectedTags = it.selectedTags - event.tag
-                ) }
-            }
-            is AddEditLinkScreenEvent.OnNewTagNameChange -> {
-                _state.update { it.copy(newTagName = event.name) }
+                // TODO: Implement tag deselection
             }
             is AddEditLinkScreenEvent.OnTagAdd -> {
-                viewModelScope.launch {
-                    try {
-                        val tag = manageTagsUseCase(TagOperation.GetOrCreate(event.tag))
-                        if (tag == null) {
-                            _state.update { it.copy(
-                                error = "Failed to create tag"
-                            ) }
-                            return@launch
-                        }
-                        _state.update { it.copy(
-                            availableTags = it.availableTags + event.tag,
-                            selectedTags = it.selectedTags + event.tag
-                        ) }
-                    } catch (e: Exception) {
-                        _state.update { it.copy(
-                            error = "Failed to create tag: ${e.message}"
-                        ) }
-                    }
-                }
+                // TODO: Implement adding new tag
+            }
+            is AddEditLinkScreenEvent.OnNewTagNameChange -> {
+                // TODO: Implement new tag name change
             }
             is AddEditLinkScreenEvent.OnInitializeEdit -> {
                 viewModelScope.launch {
-                    _state.update { it.copy(isLoading = true) }
-                    try {
-                        val link = linkRepository.getLinkById(event.linkId)
-                        if (link != null) {
-                            _state.update { it.copy(
-                                isEditMode = true,
-                                linkId = link.id,
-                                url = link.url,
-                                title = link.title,
-                                description = link.description,
-                                selectedTags = link.tags.map { tag -> tag.name },
-                                createdAt = link.createdAt,
-                                isFavorite = link.isFavorite,
-                                isArchived = link.isArchived,
-                                reminderTime = link.reminderTime
-                            ) }
-                        } else {
-                            _state.update { it.copy(error = "Link not found") }
-                        }
-                    } catch (e: Exception) {
-                        _state.update { it.copy(error = "Failed to load link: ${e.message}") }
-                    } finally {
-                        _state.update { it.copy(isLoading = false) }
+                    linkRepository.getLinkById(event.linkId)?.let { link ->
+                        _state.update { it.copy(
+                            url = link.url,
+                            title = link.title,
+                            description = link.description,
+                            notes = link.notes,
+                            reminderTime = link.reminderTime,
+                            isEditMode = true,
+                            linkId = event.linkId
+                        ) }
                     }
                 }
             }
-            AddEditLinkScreenEvent.OnToggleFavorite -> {
-                _state.update { it.copy(isFavorite = !it.isFavorite) }
+            is AddEditLinkScreenEvent.OnToggleFavorite -> {
+                // TODO: Implement favorite toggle
             }
-            AddEditLinkScreenEvent.OnToggleArchive -> {
-                _state.update { it.copy(isArchived = !it.isArchived) }
+            is AddEditLinkScreenEvent.OnToggleArchive -> {
+                // TODO: Implement archive toggle
             }
-            AddEditLinkScreenEvent.OnSave -> saveLink()
-            AddEditLinkScreenEvent.OnErrorDismiss -> {
+            is AddEditLinkScreenEvent.OnErrorDismiss -> {
                 _state.update { it.copy(error = null) }
             }
-            AddEditLinkScreenEvent.OnNavigateBack -> {
-                // Handled by UI
+            is AddEditLinkScreenEvent.OnNavigateBack -> {
+                // Handled by the UI
             }
-            is AddEditLinkScreenEvent.OnSetReminder -> {
-                Logger.d("AddEditLinkViewModel", "Setting reminder for timestamp: ${event.timestamp}")
-                _state.update { it.copy(reminderTime = event.timestamp) }
-            }
-            AddEditLinkScreenEvent.OnRemoveReminder -> {
-                Logger.d("AddEditLinkViewModel", "Removing reminder")
-                _state.update { it.copy(reminderTime = null) }
-                state.value.linkId?.let { linkId ->
-                    Logger.d("AddEditLinkViewModel", "Cancelling reminder for link: $linkId")
-                    reminderManager.cancelReminder(linkId)
-                }
-            }
-        }
-    }
-
-    private fun saveLink() {
-        val currentState = state.value
-
-        if (currentState.url.isBlank()) {
-            _state.update { it.copy(
-                isUrlError = true,
-                error = "URL cannot be empty"
-            ) }
-            return
-        }
-
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            
-            try {
-                // Create and get all tags first
-                val tags = mutableListOf<Tag>()
-                for (tagName in currentState.selectedTags) {
-                    val tag = manageTagsUseCase(TagOperation.GetOrCreate(tagName))
-                    if (tag != null) {
-                        tags.add(tag)
+            is AddEditLinkScreenEvent.OnSave -> {
+                viewModelScope.launch {
+                    try {
+                        if (state.value.isEditMode) {
+                            val result = updateLinkUseCase(
+                                Link(
+                                    id = state.value.linkId!!,
+                                    url = state.value.url,
+                                    title = state.value.title,
+                                    description = state.value.description,
+                                    previewImageUrl = null,
+                                    createdAt = System.currentTimeMillis(),
+                                    reminderTime = state.value.reminderTime,
+                                    isArchived = false,
+                                    isFavorite = false,
+                                    notes = state.value.notes,
+                                    tags = emptyList()
+                                )
+                            )
+                            if (result.isFailure) {
+                                throw result.exceptionOrNull() ?: Exception("Unknown error")
+                            }
+                        } else {
+                            val result = addLinkUseCase(
+                                Link(
+                                    id = "",
+                                    url = state.value.url,
+                                    title = state.value.title,
+                                    description = state.value.description,
+                                    previewImageUrl = null,
+                                    createdAt = System.currentTimeMillis(),
+                                    reminderTime = state.value.reminderTime,
+                                    isArchived = false,
+                                    isFavorite = false,
+                                    notes = state.value.notes,
+                                    tags = emptyList()
+                                )
+                            )
+                            if (result.isFailure) {
+                                throw result.exceptionOrNull() ?: Exception("Unknown error")
+                            }
+                        }
+                        _state.update { it.copy(saved = true) }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(error = e.message) }
                     }
                 }
-
-                // Infer link type from selected tags
-                val linkType = LinkTypeUtils.inferLinkType(currentState.selectedTags)
-
-                // Create or update link with the collected tags and inferred type
-                val link = Link(
-                    id = currentState.linkId ?: UUID.randomUUID().toString(),
-                    url = currentState.url,
-                    title = currentState.title?.takeIf { it.isNotBlank() },
-                    description = currentState.description?.takeIf { it.isNotBlank() },
-                    previewImageUrl = null,
-                    type = linkType,
-                    createdAt = currentState.createdAt,
-                    reminderTime = currentState.reminderTime,
-                    isArchived = currentState.isArchived,
-                    isFavorite = currentState.isFavorite,
-                    isCompleted = false,
-                    completedAt = null,
-                    tags = tags
-                )
-                
-                // Cancel any existing reminder first
-                currentState.linkId?.let { linkId ->
-                    reminderManager.cancelReminder(linkId)
-                }
-
-                if (currentState.isEditMode) {
-                    updateLinkUseCase(link)
-                } else {
-                    addLinkUseCase(link)
-                }
-
-            // Schedule new reminder if set
-            if (link.reminderTime != null) {
-                Logger.d("AddEditLinkViewModel", "Scheduling reminder for link: ${link.id}, time: ${link.reminderTime}")
-                reminderManager.scheduleReminder(link)
-                
-                // Observe reminder status
-                viewModelScope.launch {
-                    reminderManager.observeReminderStatus(link.id)
-                        .collect { state ->
-                            Logger.d("AddEditLinkViewModel", """
-                                Reminder status update for link ${link.id}:
-                                - State: $state
-                                - Scheduled time: ${DateUtils.formatDateTime(link.reminderTime)}
-                            """.trimIndent())
-                        }
-                }
-            }
-                _navigateBack.value = true
-            } catch (e: Exception) {
-                _state.update { it.copy(
-                    error = e.message ?: "Failed to save link"
-                ) }
-            } finally {
-                _state.update { it.copy(isLoading = false) }
             }
         }
     }

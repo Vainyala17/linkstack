@@ -7,7 +7,7 @@ import javax.inject.Inject
 class UpdateLinkUseCase @Inject constructor(
     private val linkRepository: LinkRepository
 ) {
-    suspend operator fun invoke(link: Link) {
+    suspend operator fun invoke(link: Link): Result<Unit> = runCatching {
         linkRepository.updateLink(link)
     }
 }

@@ -95,7 +95,10 @@ fun SearchScreen(
                             onEditClick = onEditLink,
                             onToggleFavorite = onToggleFavorite,
                             onToggleArchive = onToggleArchive,
-                            onToggleStatus = onToggleStatus
+                            onToggleStatus = onToggleStatus,
+                            onShareToHackerNews = { link ->
+                                viewModel.onEvent(SearchScreenEvent.OnShareToHackerNews(link))
+                            }
                         )
                     }
                 }

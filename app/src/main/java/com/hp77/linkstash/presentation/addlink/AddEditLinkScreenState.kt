@@ -15,5 +15,7 @@ data class AddEditLinkScreenState(
     val createdAt: Long = System.currentTimeMillis(),
     val isFavorite: Boolean = false,
     val isArchived: Boolean = false,
-    val reminderTime: Long? = null
+    val reminderTime: Long? = null,
+    val saved: Boolean = false,
+    val notes: String? = null
 )
