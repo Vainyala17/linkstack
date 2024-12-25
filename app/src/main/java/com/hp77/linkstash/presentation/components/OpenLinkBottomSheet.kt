@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hp77.linkstash.domain.model.Link
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Edit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,7 +27,8 @@ fun OpenLinkBottomSheet(
     link: Link,
     onDismiss: () -> Unit,
     onOpenInApp: () -> Unit,
-    onOpenInBrowser: () -> Unit
+    onOpenInBrowser: () -> Unit,
+    onEdit: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
 
@@ -67,6 +69,17 @@ fun OpenLinkBottomSheet(
                     )
                 },
                 modifier = Modifier.clickable(onClick = onOpenInBrowser)
+            )
+
+            ListItem(
+                headlineContent = { Text("Edit") },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit link"
+                    )
+                },
+                modifier = Modifier.clickable(onClick = onEdit)
             )
         }
     }

@@ -11,7 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,7 +34,7 @@ import java.util.Locale
 fun LinkItem(
     link: Link,
     onLinkClick: (Link) -> Unit,
-    onWebViewClick: (Link) -> Unit,
+    onEditClick: (Link) -> Unit,
     onToggleFavorite: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
     modifier: Modifier = Modifier
@@ -89,10 +89,10 @@ fun LinkItem(
                     )
                 }
 
-                IconButton(onClick = { onWebViewClick(link) }) {
+                IconButton(onClick = { onEditClick(link) }) {
                     Icon(
-                        imageVector = Icons.Default.OpenInBrowser,
-                        contentDescription = "Open in browser"
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit link"
                     )
                 }
 

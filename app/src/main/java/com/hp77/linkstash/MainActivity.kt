@@ -41,11 +41,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToAddLink = {
                                     navController.navigate(Screen.AddLink.route)
                                 },
-                                onNavigateToLink = { linkId ->
+                                onNavigateToEdit = { linkId ->
                                     navController.navigate(Screen.LinkDetail.createRoute(linkId))
-                                },
-                                onNavigateToWebView = { url ->
-                                    navController.navigate(Screen.WebView.createRoute(url))
                                 }
                             )
                         }

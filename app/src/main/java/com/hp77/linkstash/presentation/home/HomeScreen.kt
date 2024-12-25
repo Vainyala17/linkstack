@@ -43,12 +43,30 @@ import com.hp77.linkstash.presentation.components.LinkItem
 import com.hp77.linkstash.presentation.components.SearchBar
 import com.hp77.linkstash.presentation.components.TagChips
 
+private fun handleLinkClick(
+    clickedLink: Link,
+    context: android.content.Context,
+    onWebContent: (Link) -> Unit
+) {
+    when (val urlType = UrlHandler.parseUrl(clickedLink.url)) {
+        is UrlHandler.UrlType.YouTube,
+        is UrlHandler.UrlType.Twitter,
+        is UrlHandler.UrlType.Instagram -> {
+            // Launch appropriate app intent
+            context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
+        }
+        is UrlHandler.UrlType.Web -> {
+            // Show bottom sheet for web content
+            onWebContent(clickedLink)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToAddLink: () -> Unit,
-    onNavigateToLink: (String) -> Unit,
-    onNavigateToWebView: (String) -> Unit,
+    onNavigateToEdit: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -168,27 +186,8 @@ fun HomeScreen(
                             ) { link ->
                                 LinkItem(
                                     link = link,
-                                    onLinkClick = { onNavigateToLink(it.id) },
-                                    onWebViewClick = { clickedLink ->
-                                        when (val urlType = UrlHandler.parseUrl(clickedLink.url)) {
-                                            is UrlHandler.UrlType.YouTube -> {
-                                                // Launch YouTube intent
-                                                context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
-                                            }
-                                            is UrlHandler.UrlType.Twitter -> {
-                                                // Launch Twitter intent
-                                                context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
-                                            }
-                                            is UrlHandler.UrlType.Instagram -> {
-                                                // Launch Instagram intent
-                                                context.startActivity(UrlHandler.createIntent(context, clickedLink.url))
-                                            }
-                                            is UrlHandler.UrlType.Web -> {
-                                                // Show bottom sheet for web content
-                                                selectedLink = clickedLink
-                                            }
-                                        }
-                                    },
+                                    onLinkClick = { handleLinkClick(it, context) { link -> selectedLink = link } },
+                                    onEditClick = { onNavigateToEdit(it.id) },
                                     onToggleFavorite = {
                                         viewModel.onEvent(HomeScreenEvent.OnToggleFavorite(it))
                                     },
@@ -211,11 +210,15 @@ fun HomeScreen(
             onDismiss = { selectedLink = null },
             onOpenInApp = {
                 selectedLink = null
-                onNavigateToWebView(link.url)
+                context.startActivity(UrlHandler.createIntent(context, link.url))
             },
             onOpenInBrowser = {
                 selectedLink = null
                 context.startActivity(UrlHandler.createBrowserIntent(link.url))
+            },
+            onEdit = {
+                selectedLink = null
+                onNavigateToEdit(link.id)
             }
         )
     }
