@@ -24,6 +24,7 @@ import com.hp77.linkstash.presentation.home.HomeScreen
 import com.hp77.linkstash.presentation.navigation.Screen
 import com.hp77.linkstash.presentation.search.SearchScreen
 import com.hp77.linkstash.presentation.webview.WebViewScreen
+import com.hp77.linkstash.presentation.about.AboutScreen
 import com.hp77.linkstash.presentation.settings.SettingsScreen
 import java.net.URLDecoder
 import com.hp77.linkstash.data.preferences.ThemePreferences
@@ -165,6 +166,17 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Settings.route) {
                             SettingsScreen(
                                 onNavigateBack = {
+                                    navController.popBackStack()
+                                },
+                                onNavigateToAbout = {
+                                    navController.navigate(Screen.About.route)
+                                }
+                            )
+                        }
+
+                        composable(Screen.About.route) {
+                            AboutScreen(
+                                onNavigateUp = {
                                     navController.popBackStack()
                                 }
                             )

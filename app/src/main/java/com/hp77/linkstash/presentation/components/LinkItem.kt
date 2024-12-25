@@ -2,9 +2,9 @@ package com.hp77.linkstash.presentation.components
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.ui.text.font.FontWeight
 import com.hp77.linkstash.ui.theme.LinkColor
 import com.hp77.linkstash.ui.theme.LinkColorDark
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -186,7 +186,7 @@ fun LinkItem(
                             color = if (isSystemInDarkTheme()) 
                                 LinkColorDark.copy(alpha = 0.9f) 
                             else 
-                                LinkColor.copy(alpha = 0.95f), // Increased opacity for better visibility with darker blue
+                                LinkColor.copy(alpha = 0.95f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

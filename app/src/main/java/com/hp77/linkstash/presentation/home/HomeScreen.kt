@@ -245,7 +245,7 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Settings",
+                            text = "App Settings",
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Icon(

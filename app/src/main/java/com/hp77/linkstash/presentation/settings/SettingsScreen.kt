@@ -2,30 +2,31 @@ package com.hp77.linkstash.presentation.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         topBar = {
-            @OptIn(ExperimentalMaterial3Api::class)
             LargeTopAppBar(
                 title = { Text("Settings") },
                 navigationIcon = {
@@ -37,7 +38,8 @@ fun SettingsScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -136,6 +138,37 @@ fun SettingsScreen(
                 }
             }
 
+            // About Section
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = "About")
+                        Text(
+                            text = "About",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    Text(
+                        text = "App information and features",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Button(
+                        onClick = onNavigateToAbout,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("View Details")
+                    }
+                }
+            }
+
             // HackerNews Section
             Card {
                 Column(
@@ -220,17 +253,15 @@ fun SettingsScreen(
         )
     }
 
-    // Error Snackbar
+    // Show error in snackbar if present
     state.error?.let { error ->
-        Snackbar(
-            modifier = Modifier.padding(16.dp),
-            action = {
-                TextButton(onClick = { viewModel.onEvent(SettingsScreenEvent.DismissError) }) {
-                    Text("Dismiss")
-                }
-            }
-        ) {
-            Text(error)
+        LaunchedEffect(error) {
+            snackbarHostState.showSnackbar(
+                message = error,
+                duration = SnackbarDuration.Short,
+                withDismissAction = true
+            )
+            viewModel.onEvent(SettingsScreenEvent.DismissError)
         }
     }
 }
