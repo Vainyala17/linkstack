@@ -9,6 +9,7 @@ import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.model.Tag
 import com.hp77.linkstash.domain.repository.TagRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
@@ -79,14 +80,20 @@ class TagRepositoryImpl @Inject constructor(
 
     override suspend fun getOrCreateTag(name: String): Tag {
         val trimmedName = name.trim()
+        
+        // First try to find existing tag
         val existingTag = tagDao.getAllTags()
-            .map { tags -> tags.find { it.name.equals(trimmedName, ignoreCase = true) } }
-            .collect { it?.toTag() }
+            .map { tags -> 
+                tags.find { it.name.equals(trimmedName, ignoreCase = true) }?.toTag() 
+            }
+            .firstOrNull()
 
+        // If found, return it
         if (existingTag != null) {
             return existingTag
         }
 
+        // Otherwise create new tag
         val newTag = Tag(
             id = UUID.randomUUID().toString(),
             name = trimmedName,
