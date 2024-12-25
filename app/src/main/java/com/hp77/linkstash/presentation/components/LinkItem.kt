@@ -1,6 +1,10 @@
 package com.hp77.linkstash.presentation.components
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.text.font.FontWeight
+import com.hp77.linkstash.ui.theme.LinkColor
+import com.hp77.linkstash.ui.theme.LinkColorDark
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -143,15 +147,23 @@ fun LinkItem(
                 ) {
                     Text(
                         text = link.title ?: link.url,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isSystemInDarkTheme()) LinkColorDark else LinkColor
                     )
                     if (link.title != null) {
                         Text(
                             text = link.url,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
+                            ),
+                            color = if (isSystemInDarkTheme()) 
+                                LinkColorDark.copy(alpha = 0.9f) 
+                            else 
+                                LinkColor.copy(alpha = 0.95f), // Increased opacity for better visibility with darker blue
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

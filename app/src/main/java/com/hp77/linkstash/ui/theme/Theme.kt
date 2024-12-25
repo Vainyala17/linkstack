@@ -17,7 +17,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
-    primary = Primary,
+    primary = LinkColor,
     onPrimary = OnPrimary,
     primaryContainer = PrimaryContainer,
     onPrimaryContainer = OnPrimaryContainer,
@@ -43,7 +43,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF90CAF9), // Blue 200
+    primary = LinkColorDark,
     onPrimary = Color(0xFF0D47A1), // Blue 900
     primaryContainer = Color(0xFF1976D2), // Blue 700
     onPrimaryContainer = Color(0xFFBBDEFB), // Blue 100
@@ -59,10 +59,10 @@ private val DarkColorScheme = darkColorScheme(
     onError = Color(0xFFB71C1C), // Red 900
     errorContainer = Color(0xFFD32F2F), // Red 700
     onErrorContainer = Color(0xFFFFCDD2), // Red 100
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFEEEEEE),
-    surface = Color(0xFF1E1E1E),
-    onSurface = Color(0xFFEEEEEE),
+    background = BackgroundDark,
+    onBackground = OnBackgroundDark,
+    surface = SurfaceDark,
+    onSurface = OnSurfaceDark,
     surfaceVariant = Color(0xFF2D2D2D),
     onSurfaceVariant = Color(0xFFBDBDBD),
     outline = Color(0xFF757575)
@@ -71,7 +71,7 @@ private val DarkColorScheme = darkColorScheme(
 @Composable
 fun LinkStashTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Disabled by default to use our custom colors
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
