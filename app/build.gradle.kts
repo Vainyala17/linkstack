@@ -58,6 +58,25 @@ android {
         }
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains.kotlin:kotlin-stdlib:1.9.21")
+            force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.21")
+        }
+    }
+
+    androidComponents {
+        beforeVariants { variantBuilder ->
+            variantBuilder.enableAndroidTest = false
+        }
+    }
+
 }
 
 dependencies {

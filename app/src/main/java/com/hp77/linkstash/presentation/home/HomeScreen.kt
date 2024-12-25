@@ -74,7 +74,6 @@ fun HomeScreen(
         } else {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(paddingValues)
             ) {
                 SearchBar(
@@ -121,8 +120,11 @@ fun HomeScreen(
                     }
                 } else {
                     LazyColumn(
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(
                             items = state.links,

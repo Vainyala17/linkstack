@@ -45,6 +45,30 @@ object SampleData {
             isFavorite = true,
             tags = listOf(sampleTags[0], sampleTags[1])
         ),
+         Link(
+            id = UUID.randomUUID().toString(),
+            url = "https://developer.android.com/jetpack/compose",
+            title = "Android Compose Documentation",
+            description = "Build better apps faster with Jetpack Compose",
+            previewImageUrl = null,
+            createdAt = System.currentTimeMillis(),
+            reminderTime = null,
+            isArchived = false,
+            isFavorite = true,
+            tags = listOf(sampleTags[0], sampleTags[1])
+        ),
+         Link(
+            id = UUID.randomUUID().toString(),
+            url = "https://developer.android.com/jetpack/compose",
+            title = "C++ Compose Documentation",
+            description = "Build better apps faster with Jetpack Compose",
+            previewImageUrl = null,
+            createdAt = System.currentTimeMillis(),
+            reminderTime = null,
+            isArchived = false,
+            isFavorite = true,
+            tags = listOf(sampleTags[0], sampleTags[1])
+        ),
         Link(
             id = UUID.randomUUID().toString(),
             url = "https://kotlinlang.org/docs/coroutines-overview.html",
