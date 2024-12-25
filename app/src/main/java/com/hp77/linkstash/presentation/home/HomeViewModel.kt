@@ -28,14 +28,19 @@ class HomeViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     private val _showMenu = MutableStateFlow(false)
     private val _showProfile = MutableStateFlow(false)
+    private val _selectedFilter = MutableStateFlow<LinkFilter>(LinkFilter.All)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val _links = _searchQuery.flatMapLatest { query ->
-        val filter = if (query.isNotEmpty()) {
+    private val _links = combine(
+        _searchQuery,
+        _selectedFilter
+    ) { query, filter ->
+        if (query.isNotEmpty()) {
             LinkFilter.Search(query)
         } else {
-            LinkFilter.All
+            filter
         }
+    }.flatMapLatest { filter ->
         getLinksUseCase(filter)
     }
 
@@ -45,7 +50,8 @@ class HomeViewModel @Inject constructor(
         val error: String?,
         val isLoading: Boolean,
         val showMenu: Boolean,
-        val showProfile: Boolean
+        val showProfile: Boolean,
+        val selectedFilter: LinkFilter
     ) {
         fun toHomeScreenState() = HomeScreenState(
             links = links,
@@ -53,7 +59,8 @@ class HomeViewModel @Inject constructor(
             error = error,
             isLoading = isLoading,
             showMenu = showMenu,
-            showProfile = showProfile
+            showProfile = showProfile,
+            selectedFilter = selectedFilter
         )
     }
 
@@ -63,7 +70,8 @@ val state: StateFlow<HomeScreenState> = combine(
     _error,
     _isLoading,
     _showMenu,
-    _showProfile
+    _showProfile,
+    _selectedFilter
 ) { args -> 
     ViewModelState(
         links = args[0] as List<Link>,
@@ -71,7 +79,8 @@ val state: StateFlow<HomeScreenState> = combine(
         error = args[2] as String?,
         isLoading = args[3] as Boolean,
         showMenu = args[4] as Boolean,
-        showProfile = args[5] as Boolean
+        showProfile = args[5] as Boolean,
+        selectedFilter = args[6] as LinkFilter
     ).toHomeScreenState()
     }.stateIn(
         scope = viewModelScope,
@@ -83,6 +92,9 @@ val state: StateFlow<HomeScreenState> = combine(
         when (event) {
             is HomeScreenEvent.OnSearchQueryChange -> {
                 _searchQuery.value = event.query
+            }
+            is HomeScreenEvent.OnFilterSelect -> {
+                _selectedFilter.value = event.filter
             }
             is HomeScreenEvent.OnToggleFavorite -> {
                 viewModelScope.launch {

@@ -100,9 +100,6 @@ class SearchViewModel @Inject constructor(
                     _state.update { it.copy(searchResults = emptyList()) }
                 }
             }
-            is SearchScreenEvent.OnFilterSelect -> {
-                _state.update { it.copy(selectedFilter = event.filter) }
-            }
             is SearchScreenEvent.OnTagSelect -> {
                 _state.update { it.copy(
                     selectedTags = it.selectedTags + event.tag
@@ -127,12 +124,6 @@ class SearchViewModel @Inject constructor(
             }
             SearchScreenEvent.OnErrorDismiss -> {
                 _state.update { it.copy(error = null) }
-            }
-            is SearchScreenEvent.OnToggleFavorite -> {
-                toggleFavorite(event.link)
-            }
-            is SearchScreenEvent.OnToggleArchive -> {
-                toggleArchive(event.link)
             }
         }
     }

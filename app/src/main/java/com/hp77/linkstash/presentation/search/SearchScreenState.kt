@@ -6,7 +6,6 @@ import com.hp77.linkstash.domain.model.Tag
 
 data class SearchScreenState(
     val searchQuery: String = "",
-    val selectedFilter: LinkFilter = LinkFilter.All,
     val tags: List<Tag> = emptyList(),
     val selectedTags: List<Tag> = emptyList(),
     val recentSearches: List<String> = emptyList(),

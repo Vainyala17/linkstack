@@ -61,19 +61,6 @@ fun SearchScreen(
             ) {
                 item {
                     Text(
-                        text = "Filters",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    FilterChips(
-                        filters = DefaultFilters(),
-                        selectedFilter = state.selectedFilter,
-                        onFilterSelect = { viewModel.onEvent(SearchScreenEvent.OnFilterSelect(it)) }
-                    )
-                }
-
-                item {
-                    Text(
                         text = "Tags",
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -105,12 +92,8 @@ fun SearchScreen(
                             link = link,
                             onLinkClick = onNavigateToLink,
                             onEditClick = onEditLink,
-                            onToggleFavorite = { link ->
-                                viewModel.onEvent(SearchScreenEvent.OnToggleFavorite(link))
-                            },
-                            onToggleArchive = { link ->
-                                viewModel.onEvent(SearchScreenEvent.OnToggleArchive(link))
-                            }
+                            onToggleFavorite = onToggleFavorite,
+                            onToggleArchive = onToggleArchive
                         )
                     }
                 }

@@ -45,9 +45,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.hp77.linkstash.presentation.components.DefaultFilters
 import com.hp77.linkstash.util.DateUtils
 import com.hp77.linkstash.presentation.components.LinkItem
 import com.hp77.linkstash.presentation.components.SearchBar
+import com.hp77.linkstash.presentation.components.FilterChips
 
 private fun handleLinkClick(
     clickedLink: Link,
@@ -121,7 +123,18 @@ fun HomeScreen(
                     onClick = onNavigateToSearch
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                FilterChips(
+                    filters = DefaultFilters(),
+                    selectedFilter = state.selectedFilter,
+                    onFilterSelect = { filter ->
+                        viewModel.onEvent(HomeScreenEvent.OnFilterSelect(filter))
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 if (state.links.isEmpty()) {
                     Column(

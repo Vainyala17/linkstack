@@ -52,19 +52,30 @@ interface LinkDao {
     @Transaction
     @Query("""
         SELECT DISTINCT l.* FROM links l
+        WHERE (
+            l.title LIKE '%' || :query || '%' 
+            OR l.description LIKE '%' || :query || '%'
+            OR l.url LIKE '%' || :query || '%'
+        )
+        ORDER BY l.createdAt DESC
+    """)
+    fun searchLinks(query: String): Flow<List<LinkWithTags>>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT l.* FROM links l
         LEFT JOIN link_tag_cross_ref lt ON l.id = lt.linkId
         WHERE (
             l.title LIKE '%' || :query || '%' 
             OR l.description LIKE '%' || :query || '%'
             OR l.url LIKE '%' || :query || '%'
         )
-        AND (
-            :tagIds = '' 
-            OR lt.tagId IN (:tagIds)
-        )
+        AND lt.tagId IN (:tagIds)
+        GROUP BY l.id
+        HAVING COUNT(DISTINCT lt.tagId) > 0
         ORDER BY l.createdAt DESC
     """)
-    fun searchLinks(query: String, tagIds: List<String>): Flow<List<LinkWithTags>>
+    fun searchLinksWithTags(query: String, tagIds: List<String>): Flow<List<LinkWithTags>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLinkTagCrossRef(crossRef: LinkTagCrossRef)
