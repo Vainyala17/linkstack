@@ -112,7 +112,10 @@ fun HomeScreen(
         } else {
             Column(
                 modifier = Modifier
-                    .padding(paddingValues)
+                    .padding(
+                        top = paddingValues.calculateTopPadding(),
+                        bottom = paddingValues.calculateBottomPadding()
+                    )
             ) {
                 SearchBar(
                     query = state.searchQuery,
@@ -120,7 +123,8 @@ fun HomeScreen(
                     readOnly = true,
                     onMenuClick = { viewModel.onEvent(HomeScreenEvent.OnMenuClick) },
                     onProfileClick = { viewModel.onEvent(HomeScreenEvent.OnProfileClick) },
-                    onClick = onNavigateToSearch
+                    onClick = onNavigateToSearch,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
