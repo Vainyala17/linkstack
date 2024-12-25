@@ -1,5 +1,9 @@
 # LinkStash
 
+<p align="center">
+  <img src=".github/assets/app_icon.png" alt="LinkStash Icon" width="120" height="120">
+</p>
+
 LinkStash is a modern Android application for efficiently managing and organizing your links. Built with Clean Architecture and modern Android development practices, it offers a robust solution for saving, categorizing, and accessing your important links.
 
 ## Project Status

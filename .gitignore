@@ -20,6 +20,9 @@ out/
 build/
 release/
 
+node_modules
+scripts/
+
 # Local configuration file
 local.properties
 
