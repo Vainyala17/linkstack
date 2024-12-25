@@ -5,6 +5,7 @@ import com.hp77.linkstash.domain.repository.TagRepository
 import com.hp77.linkstash.domain.usecase.link.AddLinkUseCase
 import com.hp77.linkstash.domain.usecase.link.GetLinksUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
+import com.hp77.linkstash.domain.usecase.link.UpdateLinkUseCase
 import com.hp77.linkstash.domain.usecase.tag.ManageTagsUseCase
 import dagger.Module
 import dagger.Provides
@@ -39,4 +40,10 @@ object UseCaseModule {
     fun provideManageTagsUseCase(
         repository: TagRepository
     ): ManageTagsUseCase = ManageTagsUseCase(repository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideUpdateLinkUseCase(
+        repository: LinkRepository
+    ): UpdateLinkUseCase = UpdateLinkUseCase(repository)
 }

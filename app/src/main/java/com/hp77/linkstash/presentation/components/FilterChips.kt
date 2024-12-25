@@ -10,7 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.hp77.linkstash.presentation.home.LinkFilter
+import com.hp77.linkstash.domain.model.LinkFilter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

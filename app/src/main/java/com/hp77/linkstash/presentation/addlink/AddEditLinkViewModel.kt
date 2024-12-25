@@ -1,13 +1,16 @@
 package com.hp77.linkstash.presentation.addlink
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.model.Tag
 import com.hp77.linkstash.domain.usecase.link.AddLinkUseCase
+import com.hp77.linkstash.domain.usecase.link.UpdateLinkUseCase
 import com.hp77.linkstash.domain.usecase.tag.ManageTagsUseCase
 import com.hp77.linkstash.domain.usecase.tag.TagFilter
 import com.hp77.linkstash.domain.usecase.tag.TagOperation
+import com.hp77.linkstash.domain.repository.LinkRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,19 +21,26 @@ import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
-class AddLinkViewModel @Inject constructor(
+class AddEditLinkViewModel @Inject constructor(
     private val addLinkUseCase: AddLinkUseCase,
-    private val manageTagsUseCase: ManageTagsUseCase
+    private val updateLinkUseCase: UpdateLinkUseCase,
+    private val manageTagsUseCase: ManageTagsUseCase,
+    private val linkRepository: LinkRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(AddLinkScreenState())
-    val state: StateFlow<AddLinkScreenState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(AddEditLinkScreenState())
+    val state: StateFlow<AddEditLinkScreenState> = _state.asStateFlow()
     
     private val _navigateBack = MutableStateFlow(false)
     val navigateBack: StateFlow<Boolean> = _navigateBack.asStateFlow()
 
     init {
         loadTags()
+        // Check if we're in edit mode by looking for linkId parameter
+        savedStateHandle.get<String>("linkId")?.let { linkId ->
+            onEvent(AddEditLinkScreenEvent.OnInitializeEdit(linkId))
+        }
     }
 
     private fun loadTags() {
@@ -41,34 +51,34 @@ class AddLinkViewModel @Inject constructor(
         }
     }
 
-    fun onEvent(event: AddLinkScreenEvent) {
+    fun onEvent(event: AddEditLinkScreenEvent) {
         when (event) {
-            is AddLinkScreenEvent.OnUrlChange -> {
+            is AddEditLinkScreenEvent.OnUrlChange -> {
                 _state.update { it.copy(
                     url = event.url,
                     isUrlError = false
                 ) }
             }
-            is AddLinkScreenEvent.OnTitleChange -> {
+            is AddEditLinkScreenEvent.OnTitleChange -> {
                 _state.update { it.copy(title = event.title) }
             }
-            is AddLinkScreenEvent.OnDescriptionChange -> {
+            is AddEditLinkScreenEvent.OnDescriptionChange -> {
                 _state.update { it.copy(description = event.description) }
             }
-            is AddLinkScreenEvent.OnTagSelect -> {
+            is AddEditLinkScreenEvent.OnTagSelect -> {
                 _state.update { it.copy(
                     selectedTags = it.selectedTags + event.tag
                 ) }
             }
-            is AddLinkScreenEvent.OnTagDeselect -> {
+            is AddEditLinkScreenEvent.OnTagDeselect -> {
                 _state.update { it.copy(
                     selectedTags = it.selectedTags - event.tag
                 ) }
             }
-            is AddLinkScreenEvent.OnNewTagNameChange -> {
+            is AddEditLinkScreenEvent.OnNewTagNameChange -> {
                 _state.update { it.copy(newTagName = event.name) }
             }
-            is AddLinkScreenEvent.OnTagAdd -> {
+            is AddEditLinkScreenEvent.OnTagAdd -> {
                 viewModelScope.launch {
                     try {
                         val tag = manageTagsUseCase(TagOperation.GetOrCreate(event.tag))
@@ -89,11 +99,45 @@ class AddLinkViewModel @Inject constructor(
                     }
                 }
             }
-            AddLinkScreenEvent.OnSave -> saveLink()
-            AddLinkScreenEvent.OnErrorDismiss -> {
+            is AddEditLinkScreenEvent.OnInitializeEdit -> {
+                viewModelScope.launch {
+                    _state.update { it.copy(isLoading = true) }
+                    try {
+                        val link = linkRepository.getLinkById(event.linkId)
+                        if (link != null) {
+                            _state.update { it.copy(
+                                isEditMode = true,
+                                linkId = link.id,
+                                url = link.url,
+                                title = link.title,
+                                description = link.description,
+                                selectedTags = link.tags.map { tag -> tag.name },
+                                createdAt = link.createdAt,
+                                isFavorite = link.isFavorite,
+                                isArchived = link.isArchived,
+                                reminderTime = link.reminderTime
+                            ) }
+                        } else {
+                            _state.update { it.copy(error = "Link not found") }
+                        }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(error = "Failed to load link: ${e.message}") }
+                    } finally {
+                        _state.update { it.copy(isLoading = false) }
+                    }
+                }
+            }
+            AddEditLinkScreenEvent.OnToggleFavorite -> {
+                _state.update { it.copy(isFavorite = !it.isFavorite) }
+            }
+            AddEditLinkScreenEvent.OnToggleArchive -> {
+                _state.update { it.copy(isArchived = !it.isArchived) }
+            }
+            AddEditLinkScreenEvent.OnSave -> saveLink()
+            AddEditLinkScreenEvent.OnErrorDismiss -> {
                 _state.update { it.copy(error = null) }
             }
-            AddLinkScreenEvent.OnNavigateBack -> {
+            AddEditLinkScreenEvent.OnNavigateBack -> {
                 // Handled by UI
             }
         }
@@ -123,21 +167,25 @@ class AddLinkViewModel @Inject constructor(
                     }
                 }
 
-                // Create link with the collected tags
+                // Create or update link with the collected tags
                 val link = Link(
-                    id = UUID.randomUUID().toString(),
+                    id = currentState.linkId ?: UUID.randomUUID().toString(),
                     url = currentState.url,
                     title = currentState.title?.takeIf { it.isNotBlank() },
                     description = currentState.description?.takeIf { it.isNotBlank() },
                     previewImageUrl = null,
-                    createdAt = System.currentTimeMillis(),
-                    reminderTime = null,
-                    isArchived = false,
-                    isFavorite = false,
+                    createdAt = currentState.createdAt,
+                    reminderTime = currentState.reminderTime,
+                    isArchived = currentState.isArchived,
+                    isFavorite = currentState.isFavorite,
                     tags = tags
                 )
                 
-                addLinkUseCase(link)
+                if (currentState.isEditMode) {
+                    updateLinkUseCase(link)
+                } else {
+                    addLinkUseCase(link)
+                }
                 _navigateBack.value = true
             } catch (e: Exception) {
                 _state.update { it.copy(

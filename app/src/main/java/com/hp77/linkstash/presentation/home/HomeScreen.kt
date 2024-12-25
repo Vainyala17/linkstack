@@ -66,7 +66,7 @@ private fun handleLinkClick(
 @Composable
 fun HomeScreen(
     onNavigateToAddLink: () -> Unit,
-    onNavigateToEdit: (String) -> Unit,
+    onNavigateToEdit: (Link) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -187,7 +187,7 @@ fun HomeScreen(
                                 LinkItem(
                                     link = link,
                                     onLinkClick = { handleLinkClick(it, context) { link -> selectedLink = link } },
-                                    onEditClick = { onNavigateToEdit(it.id) },
+                                    onEditClick = { onNavigateToEdit(it) },
                                     onToggleFavorite = {
                                         viewModel.onEvent(HomeScreenEvent.OnToggleFavorite(it))
                                     },
@@ -216,10 +216,10 @@ fun HomeScreen(
                 selectedLink = null
                 context.startActivity(UrlHandler.createBrowserIntent(link.url))
             },
-            onEdit = {
-                selectedLink = null
-                onNavigateToEdit(link.id)
-            }
+                onEdit = {
+                    selectedLink = null
+                    onNavigateToEdit(link)
+                }
         )
     }
 }

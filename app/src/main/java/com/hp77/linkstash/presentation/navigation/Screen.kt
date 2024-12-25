@@ -9,4 +9,7 @@ sealed class Screen(val route: String) {
     object WebView : Screen("webview/{url}") {
         fun createRoute(url: String) = "webview/${android.net.Uri.encode(url)}"
     }
+    object EditLink : Screen("edit_link/{linkId}") {
+        fun createRoute(linkId: String) = "edit_link/$linkId"
+    }
 }

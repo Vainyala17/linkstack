@@ -3,6 +3,7 @@ package com.hp77.linkstash.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hp77.linkstash.domain.model.Link
+import com.hp77.linkstash.domain.model.LinkFilter
 import com.hp77.linkstash.domain.model.Tag
 import com.hp77.linkstash.domain.usecase.link.GetLinksUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
@@ -40,22 +41,17 @@ class HomeViewModel @Inject constructor(
     ) { query, filter, tags ->
         Triple(query, filter, tags)
     }.flatMapLatest { (query, filter, tags) ->
-        getLinksUseCase(
-            when (filter) {
-                LinkFilter.All -> com.hp77.linkstash.domain.usecase.link.LinkFilter.All
-                LinkFilter.Active -> com.hp77.linkstash.domain.usecase.link.LinkFilter.Active
-                LinkFilter.Archived -> com.hp77.linkstash.domain.usecase.link.LinkFilter.Archived
-                LinkFilter.Favorites -> com.hp77.linkstash.domain.usecase.link.LinkFilter.Favorites
-            }
-        ).map { links ->
+        val effectiveFilter = if (query.isNotEmpty()) {
+            LinkFilter.Search(query)
+        } else {
+            filter
+        }
+        getLinksUseCase(effectiveFilter).map { links ->
             links.filter { link ->
-                val matchesQuery = query.isEmpty() || link.url.contains(query, true) ||
-                        link.title?.contains(query, true) == true ||
-                        link.description?.contains(query, true) == true
                 val matchesTags = tags.isEmpty() || tags.all { tag ->
                     link.tags.contains(tag)
                 }
-                matchesQuery && matchesTags
+                matchesTags
             }
         }
     }
@@ -142,7 +138,10 @@ class HomeViewModel @Inject constructor(
             HomeScreenEvent.OnErrorDismiss -> {
                 _error.value = null
             }
-            else -> Unit // Handle navigation events in the UI layer
+            is HomeScreenEvent.OnLinkClick,
+            HomeScreenEvent.OnAddLinkClick -> {
+                // Handle navigation events in the UI layer
+            }
         }
     }
 }

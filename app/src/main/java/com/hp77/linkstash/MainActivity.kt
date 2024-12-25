@@ -12,7 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.hp77.linkstash.presentation.addlink.AddLinkScreen
+import com.hp77.linkstash.presentation.addlink.AddEditLinkScreen
 import com.hp77.linkstash.presentation.home.HomeScreen
 import com.hp77.linkstash.presentation.navigation.Screen
 import com.hp77.linkstash.presentation.webview.WebViewScreen
@@ -41,27 +41,31 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToAddLink = {
                                     navController.navigate(Screen.AddLink.route)
                                 },
-                                onNavigateToEdit = { linkId ->
-                                    navController.navigate(Screen.LinkDetail.createRoute(linkId))
+                                onNavigateToEdit = { link ->
+                                    navController.navigate(Screen.EditLink.createRoute(link.id))
                                 }
                             )
                         }
                         composable(Screen.AddLink.route) {
-                            AddLinkScreen(
+                            AddEditLinkScreen(
                                 onNavigateBack = {
                                     navController.popBackStack()
                                 }
                             )
                         }
                         composable(
-                            route = Screen.LinkDetail.route,
+                            route = Screen.EditLink.route,
                             arguments = listOf(
                                 navArgument("linkId") {
                                     type = NavType.StringType
                                 }
                             )
                         ) {
-                            // TODO: Implement LinkDetailScreen
+                            AddEditLinkScreen(
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                }
+                            )
                         }
 
                         composable(

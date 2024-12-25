@@ -1,6 +1,7 @@
 package com.hp77.linkstash.presentation.addlink
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,8 +11,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,9 +44,9 @@ import com.hp77.linkstash.presentation.components.TagChips
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddLinkScreen(
+fun AddEditLinkScreen(
     onNavigateBack: () -> Unit,
-    viewModel: AddLinkViewModel = hiltViewModel()
+    viewModel: AddEditLinkViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val navigateBack by viewModel.navigateBack.collectAsState()
@@ -57,7 +62,7 @@ fun AddLinkScreen(
     LaunchedEffect(state.error) {
         state.error?.let { error ->
             snackbarHostState.showSnackbar(error)
-            viewModel.onEvent(AddLinkScreenEvent.OnErrorDismiss)
+            viewModel.onEvent(AddEditLinkScreenEvent.OnErrorDismiss)
         }
     }
 
@@ -65,10 +70,10 @@ fun AddLinkScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Add Link") },
+                title = { Text(if (state.isEditMode) "Edit Link" else "Add Link") },
                 navigationIcon = {
                     IconButton(onClick = {
-                        viewModel.onEvent(AddLinkScreenEvent.OnNavigateBack)
+                        viewModel.onEvent(AddEditLinkScreenEvent.OnNavigateBack)
                         onNavigateBack()
                     }) {
                         Icon(
@@ -78,8 +83,26 @@ fun AddLinkScreen(
                     }
                 },
                 actions = {
+                    if (state.isEditMode) {
+                        IconButton(
+                            onClick = { viewModel.onEvent(AddEditLinkScreenEvent.OnToggleFavorite) }
+                        ) {
+                            Icon(
+                                imageVector = if (state.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = if (state.isFavorite) "Remove from favorites" else "Add to favorites"
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.onEvent(AddEditLinkScreenEvent.OnToggleArchive) }
+                        ) {
+                            Icon(
+                                imageVector = if (state.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                                contentDescription = if (state.isArchived) "Unarchive" else "Archive"
+                            )
+                        }
+                    }
                     IconButton(
-                        onClick = { viewModel.onEvent(AddLinkScreenEvent.OnSave) },
+                        onClick = { viewModel.onEvent(AddEditLinkScreenEvent.OnSave) },
                         enabled = !state.isLoading
                     ) {
                         Icon(
@@ -106,7 +129,7 @@ fun AddLinkScreen(
                 val clipboardManager = LocalClipboardManager.current
                 CustomTextField(
                     value = state.url,
-                    onValueChange = { viewModel.onEvent(AddLinkScreenEvent.OnUrlChange(it)) },
+                    onValueChange = { viewModel.onEvent(AddEditLinkScreenEvent.OnUrlChange(it)) },
                     label = { Text("URL") },
                     isError = state.isUrlError,
                     supportingText = if (state.isUrlError) {
@@ -120,7 +143,7 @@ fun AddLinkScreen(
                                 (event.isCtrlPressed || event.isMetaPressed)
                             ) {
                                 clipboardManager.getText()?.text?.let { pastedText ->
-                                    viewModel.onEvent(AddLinkScreenEvent.OnUrlChange(pastedText))
+                                    viewModel.onEvent(AddEditLinkScreenEvent.OnUrlChange(pastedText))
                                 }
                                 true
                             } else false
@@ -136,7 +159,7 @@ fun AddLinkScreen(
 
                 CustomTextField(
                     value = state.title ?: "",
-                    onValueChange = { viewModel.onEvent(AddLinkScreenEvent.OnTitleChange(it)) },
+                    onValueChange = { viewModel.onEvent(AddEditLinkScreenEvent.OnTitleChange(it)) },
                     label = { Text("Title (Optional)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -147,7 +170,7 @@ fun AddLinkScreen(
 
                 CustomTextField(
                     value = state.description ?: "",
-                    onValueChange = { viewModel.onEvent(AddLinkScreenEvent.OnDescriptionChange(it)) },
+                    onValueChange = { viewModel.onEvent(AddEditLinkScreenEvent.OnDescriptionChange(it)) },
                     label = { Text("Description (Optional)") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
@@ -166,18 +189,18 @@ fun AddLinkScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 CustomTextField(
-                    value = state.newTagName ?: "",
-                    onValueChange = { viewModel.onEvent(AddLinkScreenEvent.OnNewTagNameChange(it)) },
+                    value = state.newTagName,
+                    onValueChange = { viewModel.onEvent(AddEditLinkScreenEvent.OnNewTagNameChange(it)) },
                     label = { Text("New Tag") },
                     trailingIcon = {
                         IconButton(
                             onClick = {
-                                state.newTagName?.takeIf { it.isNotBlank() }?.let { tagName ->
-                                    viewModel.onEvent(AddLinkScreenEvent.OnTagAdd(tagName))
-                                    viewModel.onEvent(AddLinkScreenEvent.OnNewTagNameChange(""))
+                                state.newTagName.takeIf { it.isNotBlank() }?.let { tagName ->
+                                    viewModel.onEvent(AddEditLinkScreenEvent.OnTagAdd(tagName))
+                                    viewModel.onEvent(AddEditLinkScreenEvent.OnNewTagNameChange(""))
                                 }
                             },
-                            enabled = !state.newTagName.isNullOrBlank()
+                            enabled = state.newTagName.isNotBlank()
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
@@ -211,9 +234,9 @@ fun AddLinkScreen(
                     },
                     onTagClick = { tag ->
                         if (tag.name in state.selectedTags) {
-                            viewModel.onEvent(AddLinkScreenEvent.OnTagDeselect(tag.name))
+                            viewModel.onEvent(AddEditLinkScreenEvent.OnTagDeselect(tag.name))
                         } else {
-                            viewModel.onEvent(AddLinkScreenEvent.OnTagSelect(tag.name))
+                            viewModel.onEvent(AddEditLinkScreenEvent.OnTagSelect(tag.name))
                         }
                     }
                 )

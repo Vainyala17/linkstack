@@ -5,13 +5,7 @@ import com.hp77.linkstash.domain.repository.LinkRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-sealed class LinkFilter {
-    object All : LinkFilter()
-    object Active : LinkFilter()
-    object Archived : LinkFilter()
-    object Favorites : LinkFilter()
-    data class Search(val query: String) : LinkFilter()
-}
+import com.hp77.linkstash.domain.model.LinkFilter
 
 class GetLinksUseCase @Inject constructor(
     private val repository: LinkRepository
