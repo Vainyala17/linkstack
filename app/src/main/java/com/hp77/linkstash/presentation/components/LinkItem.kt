@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,29 +81,6 @@ fun LinkItem(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                IconButton(onClick = { onToggleFavorite(link) }) {
-                    Icon(
-                        imageVector = if (link.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (link.isFavorite) "Remove from favorites" else "Add to favorites",
-                        tint = if (link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                IconButton(onClick = { onEditClick(link) }) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit link"
-                    )
-                }
-
-                IconButton(onClick = { onToggleArchive(link) }) {
-                    Icon(
-                        imageVector = if (link.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
-                        contentDescription = if (link.isArchived) "Unarchive" else "Archive"
-                    )
-                }
             }
 
             link.description?.let { description ->
@@ -144,12 +122,50 @@ fun LinkItem(
                 )
             }
 
-            if (link.tags.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                TagChips(
-                    tags = link.tags,
-                    modifier = Modifier.padding(horizontal = 0.dp)
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                if (link.tags.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        TagChips(
+                            tags = link.tags,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                }
+                Row {
+                    IconButton(onClick = { onToggleFavorite(link) }) {
+                        Icon(
+                            imageVector = if (link.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (link.isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(onClick = { onEditClick(link) }) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit link"
+                        )
+                    }
+                    IconButton(onClick = { onToggleArchive(link) }) {
+                        Icon(
+                            imageVector = if (link.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                            contentDescription = if (link.isArchived) "Unarchive" else "Archive"
+                        )
+                    }
+                    // Placeholder for download image button
+                    IconButton(onClick = { /* TODO: Implement download */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Share, // Temporary icon, replace with download icon later
+                            contentDescription = "Share image"
+                        )
+                    }
+                }
             }
         }
     }
