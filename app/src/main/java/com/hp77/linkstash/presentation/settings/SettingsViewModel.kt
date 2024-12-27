@@ -6,6 +6,7 @@ import com.hp77.linkstash.data.preferences.AuthPreferences
 import com.hp77.linkstash.domain.usecase.sync.SyncLinksToGitHubUseCase
 import com.hp77.linkstash.data.repository.GitHubSyncRepository
 import com.hp77.linkstash.data.repository.HackerNewsRepository
+import com.hp77.linkstash.domain.usecase.link.CleanupInvalidLinksUseCase
 import com.hp77.linkstash.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -15,8 +16,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 private const val TAG = "SettingsViewModel"
 
@@ -25,7 +26,8 @@ class SettingsViewModel @Inject constructor(
     private val gitHubSyncRepository: GitHubSyncRepository,
     private val hackerNewsRepository: HackerNewsRepository,
     private val authPreferences: AuthPreferences,
-    private val syncLinksToGitHubUseCase: SyncLinksToGitHubUseCase
+    private val syncLinksToGitHubUseCase: SyncLinksToGitHubUseCase,
+    private val cleanupInvalidLinksUseCase: CleanupInvalidLinksUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsScreenState())
@@ -312,6 +314,31 @@ class SettingsViewModel @Inject constructor(
             }
             is SettingsScreenEvent.DismissError -> {
                 _state.update { it.copy(error = null) }
+            }
+            is SettingsScreenEvent.CleanupInvalidLinks -> {
+                viewModelScope.launch {
+                    Logger.d(TAG, "Starting cleanup of invalid links")
+                    _state.update { it.copy(
+                        isCleaningUp = true,
+                        cleanupResult = null,
+                        error = null
+                    ) }
+                    try {
+                        val result = cleanupInvalidLinksUseCase().getOrNull()
+                        Logger.d(TAG, "Cleanup completed. Removed $result invalid links")
+                        _state.update { it.copy(
+                            isCleaningUp = false,
+                            cleanupResult = result,
+                            error = null
+                        ) }
+                    } catch (e: Exception) {
+                        Logger.e(TAG, "Cleanup failed", e)
+                        _state.update { it.copy(
+                            isCleaningUp = false,
+                            error = "Failed to cleanup invalid links: ${e.message}"
+                        ) }
+                    }
+                }
             }
         }
     }

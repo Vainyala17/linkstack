@@ -1,6 +1,7 @@
 package com.hp77.linkstash.presentation.settings
 
 sealed class SettingsScreenEvent {
+    object CleanupInvalidLinks : SettingsScreenEvent()
     // GitHub Events
     object StartEditingGitHubRepo : SettingsScreenEvent()
     object CancelEditingGitHubRepo : SettingsScreenEvent()

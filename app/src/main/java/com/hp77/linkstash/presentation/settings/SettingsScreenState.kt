@@ -1,6 +1,8 @@
 package com.hp77.linkstash.presentation.settings
 
 data class SettingsScreenState(
+    val isCleaningUp: Boolean = false,
+    val cleanupResult: Int? = null,
     val isGitHubAuthenticated: Boolean = false,
     val isGitHubSyncing: Boolean = false,
     val githubRepoName: String = "",

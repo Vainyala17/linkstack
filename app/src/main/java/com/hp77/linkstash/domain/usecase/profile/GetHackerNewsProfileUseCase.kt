@@ -16,7 +16,8 @@ class GetHackerNewsProfileUseCase @Inject constructor(
         HackerNewsProfile(
             username = user.username,
             karma = user.karma,
-            about = user.about
+            about = user.about,
+            createdAt = user.created
         )
     }
 }

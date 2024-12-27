@@ -4,38 +4,69 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.UUID
 
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Create GitHub profiles table
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS github_profiles (
+                login TEXT PRIMARY KEY NOT NULL,
+                name TEXT,
+                avatarUrl TEXT NOT NULL,
+                bio TEXT,
+                location TEXT,
+                publicRepos INTEGER NOT NULL,
+                followers INTEGER NOT NULL,
+                following INTEGER NOT NULL,
+                createdAt TEXT NOT NULL,
+                lastFetchedAt INTEGER NOT NULL
+            )
+        """)
+
+        // Create HackerNews profiles table
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS hackernews_profiles (
+                username TEXT PRIMARY KEY NOT NULL,
+                karma INTEGER NOT NULL,
+                about TEXT,
+                createdAt INTEGER NOT NULL,
+                lastFetchedAt INTEGER NOT NULL
+            )
+        """)
+    }
+}
+
 val MIGRATION_3_4 = object : Migration(3, 4) {
-    override fun migrate(database: SupportSQLiteDatabase) {
+    override fun migrate(db: SupportSQLiteDatabase) {
         // Add notes field
-        database.execSQL("ALTER TABLE links ADD COLUMN notes TEXT")
+        db.execSQL("ALTER TABLE links ADD COLUMN notes TEXT")
         
         // Add HackerNews integration columns
-        database.execSQL("ALTER TABLE links ADD COLUMN hackerNewsId TEXT")
-        database.execSQL("ALTER TABLE links ADD COLUMN hackerNewsUrl TEXT")
+        db.execSQL("ALTER TABLE links ADD COLUMN hackerNewsId TEXT")
+        db.execSQL("ALTER TABLE links ADD COLUMN hackerNewsUrl TEXT")
         
         // Add GitHub sync columns
-        database.execSQL("ALTER TABLE links ADD COLUMN lastSyncedAt INTEGER")
-        database.execSQL("ALTER TABLE links ADD COLUMN syncError TEXT")
+        db.execSQL("ALTER TABLE links ADD COLUMN lastSyncedAt INTEGER")
+        db.execSQL("ALTER TABLE links ADD COLUMN syncError TEXT")
     }
 }
 
 val MIGRATION_2_3 = object : Migration(2, 3) {
-    override fun migrate(database: SupportSQLiteDatabase) {
+    override fun migrate(db: SupportSQLiteDatabase) {
         // Add type column with default value OTHER
-        database.execSQL("ALTER TABLE links ADD COLUMN type TEXT NOT NULL DEFAULT 'OTHER'")
+        db.execSQL("ALTER TABLE links ADD COLUMN type TEXT NOT NULL DEFAULT 'OTHER'")
         
         // Add isCompleted column with default value 0 (false)
-        database.execSQL("ALTER TABLE links ADD COLUMN isCompleted INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE links ADD COLUMN isCompleted INTEGER NOT NULL DEFAULT 0")
         
         // Add completedAt column (nullable)
-        database.execSQL("ALTER TABLE links ADD COLUMN completedAt INTEGER")
+        db.execSQL("ALTER TABLE links ADD COLUMN completedAt INTEGER")
     }
 }
 
 val MIGRATION_1_2 = object : Migration(1, 2) {
-    override fun migrate(database: SupportSQLiteDatabase) {
+    override fun migrate(db: SupportSQLiteDatabase) {
         // Create the tags table if it doesn't exist
-        database.execSQL("""
+        db.execSQL("""
             CREATE TABLE IF NOT EXISTS tags (
                 id TEXT PRIMARY KEY NOT NULL,
                 name TEXT NOT NULL,
@@ -45,7 +76,7 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         """)
 
         // Create the link_tag_cross_ref table if it doesn't exist
-        database.execSQL("""
+        db.execSQL("""
             CREATE TABLE IF NOT EXISTS link_tag_cross_ref (
                 linkId TEXT NOT NULL,
                 tagId TEXT NOT NULL,
@@ -56,7 +87,7 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         """)
 
         // Create a temporary table with the new schema
-        database.execSQL("""
+        db.execSQL("""
             CREATE TABLE links_new (
                 id TEXT PRIMARY KEY NOT NULL,
                 url TEXT NOT NULL,
@@ -71,7 +102,7 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         """)
 
         // Copy data from old table to new table
-        database.execSQL("""
+        db.execSQL("""
             INSERT INTO links_new (
                 id, url, title, description, previewImageUrl,
                 createdAt, reminderTime, isArchived, isFavorite
@@ -85,7 +116,7 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         // Try to migrate any existing tags from the old links table
         try {
             // Get tags from old links table (assuming they were stored in a 'tags' column)
-            val cursor = database.query("SELECT id, tags FROM links")
+            val cursor = db.query("SELECT id, tags FROM links")
             if (cursor.moveToFirst()) {
                 do {
                     val linkId = cursor.getString(cursor.getColumnIndexOrThrow("id"))
@@ -97,13 +128,13 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
                             val tagId = UUID.randomUUID().toString()
                             
                             // Insert tag
-                            database.execSQL("""
+                            db.execSQL("""
                                 INSERT OR IGNORE INTO tags (id, name, createdAt)
                                 VALUES (?, ?, ?)
                             """, arrayOf(tagId, tagName, System.currentTimeMillis()))
                             
                             // Create cross reference
-                            database.execSQL("""
+                            db.execSQL("""
                                 INSERT OR IGNORE INTO link_tag_cross_ref (linkId, tagId)
                                 VALUES (?, ?)
                             """, arrayOf(linkId, tagId))
@@ -118,9 +149,9 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         }
 
         // Drop old table
-        database.execSQL("DROP TABLE links")
+        db.execSQL("DROP TABLE links")
 
         // Rename new table to original name
-        database.execSQL("ALTER TABLE links_new RENAME TO links")
+        db.execSQL("ALTER TABLE links_new RENAME TO links")
     }
 }

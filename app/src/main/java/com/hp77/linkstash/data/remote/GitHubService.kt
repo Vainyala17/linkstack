@@ -57,9 +57,11 @@ data class GitHubUser(
     val name: String?,
     @Json(name = "avatar_url") val avatarUrl: String,
     val bio: String?,
+    val location: String?,
     @Json(name = "public_repos") val publicRepos: Int,
     val followers: Int,
-    val following: Int
+    val following: Int,
+    @Json(name = "created_at") val createdAt: String
 )
 
 @JsonClass(generateAdapter = true)

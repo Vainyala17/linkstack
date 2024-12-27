@@ -23,6 +23,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit,
     onNavigateToAbout: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -286,6 +287,55 @@ fun SettingsScreen(
                     }
                 }
             }
+            // Advanced Settings Section
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Build, contentDescription = "Advanced")
+                        Text(
+                            text = "Advanced",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    Text(
+                        text = "Advanced settings and maintenance",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Button(
+                        onClick = { viewModel.onEvent(SettingsScreenEvent.CleanupInvalidLinks) },
+                        enabled = !state.isCleaningUp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (state.isCleaningUp) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Cleaning up...")
+                        } else {
+                            Text("Cleanup Invalid Links")
+                        }
+                    }
+                    state.cleanupResult?.let { result ->
+                        Text(
+                            text = "Removed $result invalid links",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
             // About Section
             Card {
                 Column(

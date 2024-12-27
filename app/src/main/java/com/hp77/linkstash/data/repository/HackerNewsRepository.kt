@@ -5,8 +5,12 @@ import com.hp77.linkstash.data.remote.HNConstants
 import com.hp77.linkstash.data.remote.HackerNewsService
 import com.hp77.linkstash.data.remote.HackerNewsUser
 import com.hp77.linkstash.data.remote.getHNUrl
+import com.hp77.linkstash.data.mapper.toEntity
+import com.hp77.linkstash.data.mapper.toProfile
 import com.hp77.linkstash.data.remote.parseHNUserProfile
+import com.hp77.linkstash.util.Logger
 import com.hp77.linkstash.domain.model.Link
+import com.hp77.linkstash.data.local.dao.HackerNewsProfileDao
 import kotlinx.coroutines.flow.first
 import org.jsoup.Jsoup
 import javax.inject.Inject
@@ -15,8 +19,12 @@ import javax.inject.Singleton
 @Singleton
 class HackerNewsRepository @Inject constructor(
     private val hackerNewsService: HackerNewsService,
-    private val authPreferences: AuthPreferences
+    private val authPreferences: AuthPreferences,
+    private val profileDao: HackerNewsProfileDao
 ) {
+    companion object {
+        private const val PROFILE_CACHE_DURATION = 30 * 60 * 1000L // 30 minutes
+    }
     suspend fun submitStory(link: Link): Result<String> = runCatching {
         val cookie = authPreferences.hackerNewsToken.first() 
             ?: throw IllegalStateException("Not logged in to HackerNews")
@@ -92,17 +100,48 @@ class HackerNewsRepository @Inject constructor(
             ?.substringAfter("user=")
             ?: throw IllegalStateException("Invalid HackerNews cookie")
 
+        // Check if we have a fresh cached profile
+        val cachedProfile = profileDao.getProfileIfFresh(
+            username = username,
+            maxAge = PROFILE_CACHE_DURATION
+        )
+
+        if (cachedProfile != null) {
+            Logger.d("HackerNewsRepository", "Using cached HackerNews profile")
+            return@runCatching HackerNewsUser(
+                username = cachedProfile.username,
+                karma = cachedProfile.karma,
+                about = cachedProfile.about,
+                created = cachedProfile.createdAt
+            )
+        }
+
+        // Fetch from network
+        Logger.d("HackerNewsRepository", "Fetching HackerNews profile from network")
         val response = hackerNewsService.getUser(username)
         if (!response.isSuccessful) {
             throw Exception("Failed to get user profile: ${response.errorBody()?.string()}")
         }
 
-        response.body()?.parseHNUserProfile()
+        val user = response.body()?.parseHNUserProfile()
             ?: throw Exception("Empty response from HackerNews")
+
+        // Update cache
+        profileDao.insertProfile(user.toEntity())
+        Logger.d("HackerNewsRepository", "Updated HackerNews profile cache")
+
+        user
     }
 
     suspend fun logout() {
         authPreferences.updateHackerNewsToken(null)
+        // Clear cached profile data
+        val username = authPreferences.hackerNewsToken.first()
+            ?.split(";")?.firstOrNull { it.trim().startsWith("user=") }
+            ?.substringAfter("user=")
+        if (username != null) {
+            profileDao.deleteProfile(username)
+        }
     }
 
     suspend fun getStory(id: String): Result<String> = runCatching {

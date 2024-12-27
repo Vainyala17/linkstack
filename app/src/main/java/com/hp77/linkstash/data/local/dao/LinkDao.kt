@@ -108,4 +108,7 @@ interface LinkDao {
 
     @Query("UPDATE links SET lastSyncedAt = NULL, syncError = NULL WHERE id IN (:linkIds)")
     suspend fun clearSyncStatusBatch(linkIds: List<String>)
+
+    @Query("DELETE FROM links WHERE id IS NULL OR id = ''")
+    suspend fun deleteInvalidLinks(): Int
 }

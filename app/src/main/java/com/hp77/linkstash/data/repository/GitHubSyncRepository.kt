@@ -5,7 +5,9 @@ import com.hp77.linkstash.data.preferences.AuthPreferences
 import com.hp77.linkstash.data.remote.*
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.data.local.dao.LinkDao
+import com.hp77.linkstash.data.local.dao.GitHubProfileDao
 import com.hp77.linkstash.data.mapper.toLinkEntity
+import com.hp77.linkstash.data.mapper.toEntity
 import com.hp77.linkstash.util.Logger
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,7 @@ class GitHubSyncRepository @Inject constructor(
     private val deviceFlowService: GitHubDeviceFlowService,
     private val authPreferences: AuthPreferences,
     private val linkDao: LinkDao,
+    private val profileDao: GitHubProfileDao,
     private val moshi: Moshi
 ) {
     companion object {
@@ -36,6 +39,7 @@ class GitHubSyncRepository @Inject constructor(
         private const val COMMIT_MESSAGE = "Update links"
         private const val FILE_PREFIX = "linkstash-"
         private val FILE_PATTERN = Pattern.compile("linkstash-\\d{4}-\\d{2}-\\d{2}\\.md")
+        private const val PROFILE_CACHE_DURATION = 30 * 60 * 1000L // 30 minutes
     }
 
     private fun handleErrorResponse(response: Response<*>, prefix: String): String {
@@ -228,7 +232,7 @@ class GitHubSyncRepository @Inject constructor(
             // Check if repo exists
             Logger.d(TAG, "Checking for repository: $repoName")
             val repoResponse = gitHubService.getRepository(authHeader, repoOwner, repoName)
-            val repo = if (repoResponse.isSuccessful) {
+            if (repoResponse.isSuccessful) {
                 repoResponse.body()!!.also {
                     Logger.d(TAG, "Found existing repository: ${it.fullName}")
                 }
@@ -286,9 +290,9 @@ class GitHubSyncRepository @Inject constructor(
                             if (fileResponse.isSuccessful) {
                                 fileResponse.body()?.content?.let { content ->
                                     val decodedContent = String(Base64.decode(content, Base64.DEFAULT))
-                                    val links = MarkdownParser.parseMarkdown(decodedContent)
-                                    Logger.d(TAG, "Parsed ${links.size} links from ${file.name}")
-                                    remoteLinks.addAll(links)
+                    val parsedLinks = MarkdownParser.parseMarkdown(decodedContent)
+                    Logger.d(TAG, "Parsed ${parsedLinks.size} links from ${file.name}")
+                    remoteLinks.addAll(parsedLinks)
                                 }
                             }
                         } catch (e: Exception) {
@@ -395,11 +399,43 @@ class GitHubSyncRepository @Inject constructor(
 
     suspend fun getCurrentUser(): Result<GitHubUser> = runCatching {
         val token = authPreferences.githubToken.first() ?: throw IllegalStateException("GitHub token not found")
+        
+        // Check if we have a fresh cached profile
+        val cachedProfile = profileDao.getProfileIfFresh(
+            login = token,
+            maxAge = PROFILE_CACHE_DURATION
+        )
+        
+        if (cachedProfile != null) {
+            Logger.d(TAG, "Using cached GitHub profile")
+            return@runCatching GitHubUser(
+                login = cachedProfile.login,
+                id = 0, // Using 0 as a placeholder since we don't store id in cache
+                name = cachedProfile.name,
+                avatarUrl = cachedProfile.avatarUrl,
+                bio = cachedProfile.bio,
+                location = cachedProfile.location,
+                publicRepos = cachedProfile.publicRepos,
+                followers = cachedProfile.followers,
+                following = cachedProfile.following,
+                createdAt = cachedProfile.createdAt
+            )
+        }
+
+        // Fetch from network
+        Logger.d(TAG, "Fetching GitHub profile from network")
         val response = gitHubService.getCurrentUser("token $token")
         if (!response.isSuccessful) {
             throw Exception(handleErrorResponse(response, "Failed to get user info"))
         }
-        response.body() ?: throw Exception("Empty response body")
+        
+        val user = response.body() ?: throw Exception("Empty response body")
+        
+        // Update cache
+        profileDao.insertProfile(user.toEntity())
+        Logger.d(TAG, "Updated GitHub profile cache")
+        
+        user
     }
 
     suspend fun isAuthenticated(): Boolean {

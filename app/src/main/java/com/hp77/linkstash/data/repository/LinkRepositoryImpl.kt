@@ -146,4 +146,9 @@ class LinkRepositoryImpl @Inject constructor(
         )
         updateLink(updatedLink)
     }
+
+    override suspend fun cleanupInvalidLinks(): Int {
+        Logger.d("LinkRepository", "Cleaning up invalid links")
+        return linkDao.deleteInvalidLinks()
+    }
 }
