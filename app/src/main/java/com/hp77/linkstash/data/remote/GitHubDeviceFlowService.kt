@@ -1,19 +1,25 @@
 package com.hp77.linkstash.data.remote
 
-import com.google.gson.annotations.SerializedName
+import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 import retrofit2.Response
 import retrofit2.http.*
 
 interface GitHubDeviceFlowService {
-    @Headers("Accept: application/json")
-    @POST("https://github.com/login/device/code")
+    @Headers(
+        "Accept: application/json",
+        "Accept: application/vnd.github.device-flow+json"
+    )
+    @POST("login/device/code")
     suspend fun requestDeviceCode(
         @Query("client_id") clientId: String,
         @Query("scope") scope: String = "repo" // For private repos access
     ): Response<DeviceCodeResponse>
 
-    @Headers("Accept: application/json")
-    @POST("https://github.com/login/oauth/access_token")
+    @Headers(
+        "Accept: application/json"
+    )
+    @POST("login/oauth/access_token")
     suspend fun pollForToken(
         @Query("client_id") clientId: String,
         @Query("device_code") deviceCode: String,
@@ -21,17 +27,23 @@ interface GitHubDeviceFlowService {
     ): Response<AccessTokenResponse>
 }
 
+@JsonClass(generateAdapter = true)
 data class DeviceCodeResponse(
-    @SerializedName("device_code") val deviceCode: String,
-    @SerializedName("user_code") val userCode: String,
-    @SerializedName("verification_uri") val verificationUri: String,
-    @SerializedName("expires_in") val expiresIn: Int,
-    @SerializedName("interval") val interval: Int
-)
+    @Json(name = "device_code") val deviceCode: String,
+    @Json(name = "user_code") val userCode: String,
+    @Json(name = "verification_uri") val verificationUri: String,
+    @Json(name = "verification_url") val verificationUrl: String = "", // Fallback field
+    @Json(name = "expires_in") val expiresIn: Int,
+    @Json(name = "interval") val interval: Int
+) {
+    val verificationLink: String
+        get() = verificationUri // Always use verification_uri as it's the primary field
+}
 
+@JsonClass(generateAdapter = true)
 data class AccessTokenResponse(
-    @SerializedName("access_token") val accessToken: String?,
-    @SerializedName("token_type") val tokenType: String?,
-    @SerializedName("scope") val scope: String?,
-    @SerializedName("error") val error: String?
+    @Json(name = "access_token") val accessToken: String?,
+    @Json(name = "token_type") val tokenType: String?,
+    @Json(name = "scope") val scope: String?,
+    @Json(name = "error") val error: String?
 )

@@ -247,38 +247,6 @@ fun SettingsScreen(
                     }
                 }
             }
-
-            // About Section
-            Card {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = "About")
-                        Text(
-                            text = "About",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                    Text(
-                        text = "App information and features",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Button(
-                        onClick = onNavigateToAbout,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("View Details")
-                    }
-                }
-            }
-
             // HackerNews Section
             Card {
                 Column(
@@ -318,6 +286,36 @@ fun SettingsScreen(
                     }
                 }
             }
+            // About Section
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = "About")
+                        Text(
+                            text = "About",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    Text(
+                        text = "App information and features",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Button(
+                        onClick = onNavigateToAbout,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("View Details")
+                    }
+                }
+            }
         }
     }
 
@@ -333,9 +331,20 @@ fun SettingsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    if (state.githubUserCode.isEmpty()) {
+                    if (state.isInitiatingDeviceFlow || state.deviceFlowStatus.isNotEmpty()) {
                         CircularProgressIndicator()
-                        Text("Initializing GitHub connection...")
+                        Text(
+                            text = state.deviceFlowStatus.ifEmpty { "Getting device code from GitHub..." },
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else if (state.githubUserCode.isEmpty()) {
+                        Text(
+                            text = "Click Start to begin GitHub connection",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
+                        )
                     } else {
                         Text(
                             text = "Enter this code on GitHub:",
@@ -354,7 +363,12 @@ fun SettingsScreen(
                         }
                         if (state.isPollingForGitHubToken) {
                             CircularProgressIndicator()
-                            Text("Waiting for authorization...")
+                            Text(
+                                text = state.deviceFlowStatus.ifEmpty { "Waiting for authorization..." },
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -362,9 +376,10 @@ fun SettingsScreen(
             confirmButton = {
                 if (state.githubUserCode.isEmpty()) {
                     Button(
-                        onClick = { viewModel.onEvent(SettingsScreenEvent.InitiateGitHubDeviceFlow) }
+                        onClick = { viewModel.onEvent(SettingsScreenEvent.InitiateGitHubDeviceFlow) },
+                        enabled = !state.isInitiatingDeviceFlow
                     ) {
-                        Text("Start")
+                        Text(if (state.isInitiatingDeviceFlow) "Starting..." else "Start")
                     }
                 } else {
                     Button(

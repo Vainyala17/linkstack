@@ -1,5 +1,7 @@
 package com.hp77.linkstash.data.remote
 
+import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -48,25 +50,28 @@ interface GitHubService {
     ): Response<GitHubUpdateResponse>
 }
 
+@JsonClass(generateAdapter = true)
 data class GitHubUser(
     val login: String,
     val id: Long,
     val name: String?,
-    val avatar_url: String,
+    @Json(name = "avatar_url") val avatarUrl: String,
     val bio: String?,
-    val public_repos: Int,
+    @Json(name = "public_repos") val publicRepos: Int,
     val followers: Int,
     val following: Int
 )
 
+@JsonClass(generateAdapter = true)
 data class GitHubRepo(
     val id: Long,
     val name: String,
-    val full_name: String,
+    @Json(name = "full_name") val fullName: String,
     val private: Boolean,
     val description: String?
 )
 
+@JsonClass(generateAdapter = true)
 data class GitHubContent(
     val type: String,
     val encoding: String?,
@@ -77,24 +82,28 @@ data class GitHubContent(
     val sha: String
 )
 
+@JsonClass(generateAdapter = true)
 data class CreateRepoRequest(
     val name: String,
     val description: String?,
     val private: Boolean = true,
-    val auto_init: Boolean = true
+    @Json(name = "auto_init") val autoInit: Boolean = true
 )
 
+@JsonClass(generateAdapter = true)
 data class UpdateFileRequest(
     val message: String,
     val content: String, // Base64 encoded content
     val sha: String? = null // Required for updating existing files
 )
 
+@JsonClass(generateAdapter = true)
 data class GitHubUpdateResponse(
     val content: GitHubContent,
     val commit: GitHubCommit
 )
 
+@JsonClass(generateAdapter = true)
 data class GitHubCommit(
     val sha: String,
     val message: String

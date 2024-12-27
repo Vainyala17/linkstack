@@ -16,9 +16,9 @@ class GetGitHubProfileUseCase @Inject constructor(
         GitHubProfile(
             login = user.login,
             name = user.name,
-            avatarUrl = user.avatar_url,
+            avatarUrl = user.avatarUrl,
             bio = user.bio,
-            publicRepos = user.public_repos,
+            publicRepos = user.publicRepos,
             followers = user.followers,
             following = user.following
         )

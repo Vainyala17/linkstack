@@ -19,9 +19,11 @@ data class SettingsScreenState(
     val githubUserCode: String = "",
     val githubVerificationUri: String = "",
     val isPollingForGitHubToken: Boolean = false,
+    val isInitiatingDeviceFlow: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val syncProgress: SyncProgress = SyncProgress.None
+    val syncProgress: SyncProgress = SyncProgress.None,
+    val deviceFlowStatus: String = ""
 )
 
 data class GitHubProfile(

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 private const val TAG = "SettingsViewModel"
@@ -103,14 +104,25 @@ class SettingsViewModel @Inject constructor(
             is SettingsScreenEvent.InitiateGitHubDeviceFlow -> {
                 Logger.d(TAG, "Initiating GitHub device flow")
                 viewModelScope.launch {
+                    _state.update { it.copy(
+                        isInitiatingDeviceFlow = true,
+                        deviceFlowStatus = "Connecting to GitHub...",
+                        error = null
+                    ) }
+                    delay(500) // Give UI time to update
+                    _state.update { it.copy(
+                        deviceFlowStatus = "Requesting device code..."
+                    ) }
                     try {
                         val deviceCodeResponse = gitHubSyncRepository.initiateDeviceFlow().getOrThrow()
-                        Logger.d(TAG, "Got device code, verification URI: ${deviceCodeResponse.verificationUri}")
+                        Logger.d(TAG, "Got device code, verification link: ${deviceCodeResponse.verificationLink}")
                         _state.update { it.copy(
                             githubDeviceCode = deviceCodeResponse.deviceCode,
                             githubUserCode = deviceCodeResponse.userCode,
-                            githubVerificationUri = deviceCodeResponse.verificationUri,
+                            githubVerificationUri = deviceCodeResponse.verificationLink,
                             isPollingForGitHubToken = true,
+                            isInitiatingDeviceFlow = false,
+                            deviceFlowStatus = "",
                             error = null
                         ) }
 
@@ -130,18 +142,49 @@ class SettingsViewModel @Inject constructor(
                                     error = null
                                 ) }
                             }.onFailure { error ->
-                                Logger.e(TAG, "Failed to get token", error)
-                                _state.update { it.copy(
-                                    isPollingForGitHubToken = false,
-                                    error = error.message
-                                ) }
+                                when {
+                                    error.message?.contains("authorization_pending") == true -> {
+                                        Logger.d(TAG, "Waiting for user authorization")
+                                        _state.update { it.copy(
+                                            deviceFlowStatus = "Waiting for authorization... Please enter the code on GitHub"
+                                        ) }
+                                    }
+                                    error.message?.contains("slow_down") == true -> {
+                                        Logger.d(TAG, "Polling too fast")
+                                        _state.update { it.copy(
+                                            deviceFlowStatus = "Please wait a moment..."
+                                        ) }
+                                    }
+                                    error.message?.contains("expired") == true -> {
+                                        Logger.e(TAG, "Device code expired", error)
+                                        _state.update { it.copy(
+                                            isPollingForGitHubToken = false,
+                                            error = "Code expired. Please try again.",
+                                            deviceFlowStatus = ""
+                                        ) }
+                                    }
+                                    else -> {
+                                        Logger.e(TAG, "Failed to get token", error)
+                                        _state.update { it.copy(
+                                            isPollingForGitHubToken = false,
+                                            error = error.message,
+                                            deviceFlowStatus = ""
+                                        ) }
+                                    }
+                                }
                             }
                         }
                     } catch (e: Exception) {
                         Logger.e(TAG, "Device flow initiation failed", e)
+                        val errorMessage = when {
+                            e is java.net.SocketTimeoutException -> "Connection timed out. Please check your internet connection and try again."
+                            e.message?.contains("timeout", ignoreCase = true) == true -> "Request timed out. Please try again."
+                            else -> e.message ?: "Failed to connect to GitHub. Please try again."
+                        }
                         _state.update { it.copy(
                             isPollingForGitHubToken = false,
-                            error = e.message
+                            isInitiatingDeviceFlow = false,
+                            error = errorMessage
                         ) }
                     }
                 }
@@ -229,10 +272,12 @@ class SettingsViewModel @Inject constructor(
                 viewModelScope.launch {
                     _state.update { it.copy(isLoading = true) }
                     try {
-                        hackerNewsRepository.login(
-                            _state.value.hackerNewsUsername,
-                            _state.value.hackerNewsPassword
-                        ).getOrThrow()
+                        val currentState = _state.value
+                        when {
+                            currentState.hackerNewsUsername.isBlank() -> throw IllegalArgumentException("Username cannot be empty")
+                            currentState.hackerNewsPassword.isBlank() -> throw IllegalArgumentException("Password cannot be empty")
+                            else -> hackerNewsRepository.login(currentState.hackerNewsUsername, currentState.hackerNewsPassword).getOrThrow()
+                        }
                         
                         _state.update { it.copy(
                             isLoading = false,

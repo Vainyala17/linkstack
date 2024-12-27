@@ -30,8 +30,8 @@ android {
         
         // Add SDK version handling
         manifestPlaceholders["sdkVersion"] = "3"
-        versionCode = 2  // Increment for each release
-        versionName = "1.0.1"  // Follow semantic versioning
+        versionCode = 5  // Increment for each release
+        versionName = "1.1.2"  // Follow semantic versioning
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -45,8 +45,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
