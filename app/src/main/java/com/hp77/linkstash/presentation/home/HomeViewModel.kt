@@ -9,8 +9,10 @@ import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
 import com.hp77.linkstash.domain.usecase.link.ToggleLinkStatusUseCase
 import com.hp77.linkstash.domain.usecase.link.ShareToHackerNewsUseCase
 import com.hp77.linkstash.domain.usecase.sync.SyncLinksToGitHubUseCase
+import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.data.preferences.ThemeMode
 import com.hp77.linkstash.data.preferences.ThemePreferences
+import com.hp77.linkstash.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +31,8 @@ class HomeViewModel @Inject constructor(
     private val toggleLinkStatusUseCase: ToggleLinkStatusUseCase,
     private val themePreferences: ThemePreferences,
     private val shareToHackerNewsUseCase: ShareToHackerNewsUseCase,
-    private val syncLinksToGitHubUseCase: SyncLinksToGitHubUseCase
+    private val syncLinksToGitHubUseCase: SyncLinksToGitHubUseCase,
+    private val linkRepository: LinkRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -155,6 +158,18 @@ class HomeViewModel @Inject constructor(
                     try {
                         toggleLinkStatusUseCase(event.link)
                     } catch (e: Exception) {
+                        _error.value = e.message
+                    }
+                }
+            }
+            is HomeScreenEvent.OnDeleteLink -> {
+                viewModelScope.launch {
+                    try {
+                        Logger.d("HomeViewModel", "Deleting link: id=${event.link.id}, url=${event.link.url}")
+                        linkRepository.deleteLink(event.link)
+                        Logger.d("HomeViewModel", "Successfully deleted link")
+                    } catch (e: Exception) {
+                        Logger.e("HomeViewModel", "Error deleting link: ${e.message}", e)
                         _error.value = e.message
                     }
                 }

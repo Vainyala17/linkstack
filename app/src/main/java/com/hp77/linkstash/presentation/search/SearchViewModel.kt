@@ -8,6 +8,7 @@ import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.domain.repository.TagRepository
 import com.hp77.linkstash.domain.usecase.link.ShareToHackerNewsUseCase
 import com.hp77.linkstash.domain.usecase.sync.SyncLinksToGitHubUseCase
+import com.hp77.linkstash.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -118,6 +119,22 @@ class SearchViewModel @Inject constructor(
                 )}
                 if (state.value.searchQuery.isNotEmpty()) {
                     performSearch(state.value.searchQuery)
+                }
+            }
+            is SearchScreenEvent.OnDeleteLink -> {
+                viewModelScope.launch {
+                    try {
+                        Logger.d("SearchViewModel", "Deleting link: id=${event.link.id}, url=${event.link.url}")
+                        linkRepository.deleteLink(event.link)
+                        Logger.d("SearchViewModel", "Successfully deleted link")
+                        // Re-run search to update results
+                        if (state.value.searchQuery.isNotEmpty()) {
+                            performSearch(state.value.searchQuery)
+                        }
+                    } catch (e: Exception) {
+                        Logger.e("SearchViewModel", "Error deleting link: ${e.message}", e)
+                        _state.update { it.copy(error = e.message) }
+                    }
                 }
             }
             is SearchScreenEvent.OnRecentSearchClick -> {

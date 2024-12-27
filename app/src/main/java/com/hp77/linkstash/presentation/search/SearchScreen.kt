@@ -99,6 +99,9 @@ fun SearchScreen(
                             onToggleStatus = onToggleStatus,
                             onShare = { link ->
                                 viewModel.onEvent(SearchScreenEvent.OnShowShareSheet(link))
+                            },
+                            onDelete = { link ->
+                                viewModel.onEvent(SearchScreenEvent.OnDeleteLink(link))
                             }
                         )
                     }

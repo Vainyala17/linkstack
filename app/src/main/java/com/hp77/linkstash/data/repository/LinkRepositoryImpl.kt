@@ -6,6 +6,7 @@ import com.hp77.linkstash.data.mapper.toLink
 import com.hp77.linkstash.data.mapper.toLinkEntity
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.repository.LinkRepository
+import com.hp77.linkstash.util.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -17,6 +18,7 @@ class LinkRepositoryImpl @Inject constructor(
 ) : LinkRepository {
 
     override suspend fun insertLink(link: Link) {
+        Logger.d("LinkRepository", "Inserting new link: id=${link.id}, url=${link.url}")
         // First insert the link
         val linkEntity = link.toLinkEntity()
         linkDao.insertLink(linkEntity)
@@ -30,13 +32,14 @@ class LinkRepositoryImpl @Inject constructor(
                 )
                 linkDao.insertLinkTagCrossRef(crossRef)
             } catch (e: Exception) {
-                // Log error but continue with other tags
+                Logger.e("LinkRepository", "Error inserting tag crossRef for link ${link.id}", e)
                 e.printStackTrace()
             }
         }
     }
 
     override suspend fun updateLink(link: Link) {
+        Logger.d("LinkRepository", "Updating link: id=${link.id}, url=${link.url}")
         // First update the link
         val linkEntity = link.toLinkEntity()
         linkDao.updateLink(linkEntity)
@@ -52,18 +55,26 @@ class LinkRepositoryImpl @Inject constructor(
                 linkDao.insertLinkTagCrossRef(crossRef)
             }
         } catch (e: Exception) {
-            // Log error but don't fail the update
+            Logger.e("LinkRepository", "Error updating tags for link ${link.id}", e)
             e.printStackTrace()
         }
     }
 
     override suspend fun deleteLink(link: Link) {
+        Logger.d("LinkRepository", "Deleting link: id=${link.id}")
         val linkEntity = link.toLinkEntity()
         linkDao.deleteLink(linkEntity)
     }
 
     override suspend fun getLinkById(id: String): Link? {
-        return linkDao.getLinkWithTags(id)?.toLink()
+        Logger.d("LinkRepository", "Fetching link with id: $id")
+        val linkWithTags = linkDao.getLinkWithTags(id)
+        if (linkWithTags == null) {
+            Logger.e("LinkRepository", "Link not found with id: $id")
+            return null
+        }
+        Logger.d("LinkRepository", "Found link: ${linkWithTags.link.url}")
+        return linkWithTags.toLink()
     }
 
     override fun getAllLinks(): Flow<List<Link>> {
@@ -103,26 +114,31 @@ class LinkRepositoryImpl @Inject constructor(
     }
 
     override suspend fun toggleArchive(link: Link) {
+        Logger.d("LinkRepository", "Toggling archive for link: id=${link.id}")
         val updatedLink = link.copy(isArchived = !link.isArchived)
         updateLink(updatedLink)
     }
 
     override suspend fun toggleFavorite(link: Link) {
+        Logger.d("LinkRepository", "Toggling favorite for link: id=${link.id}")
         val updatedLink = link.copy(isFavorite = !link.isFavorite)
         updateLink(updatedLink)
     }
 
     override suspend fun setReminder(link: Link, reminderTime: Long) {
+        Logger.d("LinkRepository", "Setting reminder for link: id=${link.id}")
         val updatedLink = link.copy(reminderTime = reminderTime)
         updateLink(updatedLink)
     }
 
     override suspend fun clearReminder(link: Link) {
+        Logger.d("LinkRepository", "Clearing reminder for link: id=${link.id}")
         val updatedLink = link.copy(reminderTime = null)
         updateLink(updatedLink)
     }
 
     override suspend fun toggleStatus(link: Link) {
+        Logger.d("LinkRepository", "Toggling status for link: id=${link.id}")
         val now = System.currentTimeMillis()
         val updatedLink = link.copy(
             isCompleted = !link.isCompleted,

@@ -8,6 +8,7 @@ sealed class SearchScreenEvent {
     data class OnSearchQueryChange(val query: String) : SearchScreenEvent()
     data class OnTagSelect(val tag: Tag) : SearchScreenEvent()
     data class OnTagDeselect(val tag: Tag) : SearchScreenEvent()
+    data class OnDeleteLink(val link: Link) : SearchScreenEvent()
     object OnErrorDismiss : SearchScreenEvent()
     data class OnRecentSearchClick(val query: String) : SearchScreenEvent()
     data class OnShowShareSheet(val link: Link) : SearchScreenEvent()

@@ -31,6 +31,7 @@ import com.hp77.linkstash.domain.model.Tag
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import com.hp77.linkstash.util.Logger
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,8 +40,11 @@ fun AddEditLinkScreen(
     linkId: String? = null,
     viewModel: AddEditLinkViewModel = hiltViewModel()
 ) {
+    Logger.d("AddEditLinkScreen", "Screen initialized with linkId: $linkId")
+    
     LaunchedEffect(linkId) {
         linkId?.let { id ->
+            Logger.d("AddEditLinkScreen", "Initializing edit mode for linkId: $id")
             viewModel.onEvent(AddEditLinkScreenEvent.OnInitializeEdit(id))
         }
     }
@@ -48,12 +52,14 @@ fun AddEditLinkScreen(
 
     LaunchedEffect(state.error) {
         state.error?.let { error ->
+            Logger.e("AddEditLinkScreen", "Error occurred: $error")
             // Show error snackbar
         }
     }
 
     LaunchedEffect(state.saved) {
         if (state.saved) {
+            Logger.d("AddEditLinkScreen", "Link saved successfully, navigating back")
             onNavigateBack()
         }
     }
@@ -63,7 +69,12 @@ fun AddEditLinkScreen(
             LargeTopAppBar(
                 title = { Text(if (state.isEditMode) "Edit Link" else "Add Link") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(
+                        onClick = {
+                            Logger.d("AddEditLinkScreen", "Back button clicked")
+                            onNavigateBack()
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Navigate back"
@@ -169,7 +180,10 @@ fun AddEditLinkScreen(
             }
 
             Button(
-                onClick = { viewModel.onEvent(AddEditLinkScreenEvent.OnSave) },
+                onClick = { 
+                    Logger.d("AddEditLinkScreen", "Save button clicked")
+                    viewModel.onEvent(AddEditLinkScreenEvent.OnSave) 
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Save")

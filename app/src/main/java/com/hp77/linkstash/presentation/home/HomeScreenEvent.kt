@@ -10,6 +10,7 @@ sealed class HomeScreenEvent {
     data class OnToggleArchive(val link: Link) : HomeScreenEvent()
     data class OnFilterSelect(val filter: LinkFilter) : HomeScreenEvent()
     data class OnThemeSelect(val theme: ThemeMode) : HomeScreenEvent()
+    data class OnDeleteLink(val link: Link) : HomeScreenEvent()
     object OnErrorDismiss : HomeScreenEvent()
     object OnMenuClick : HomeScreenEvent()
     object OnMenuDismiss : HomeScreenEvent()

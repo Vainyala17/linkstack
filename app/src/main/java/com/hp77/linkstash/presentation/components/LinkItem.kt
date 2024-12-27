@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Launch
 import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.model.Tag
+import com.hp77.linkstash.util.Logger
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -56,10 +58,11 @@ private fun LinkActions(
     onEditClick: (Link) -> Unit,
     onToggleArchive: (Link) -> Unit,
     onShare: (Link) -> Unit,
+    onDelete: (Link) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.requiredWidth(200.dp),
+        modifier = modifier.requiredWidth(240.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -70,7 +73,12 @@ private fun LinkActions(
                 tint = if (link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
         }
-        IconButton(onClick = { onEditClick(link) }) {
+        IconButton(
+            onClick = { 
+                Logger.d("LinkItem", "Edit button clicked for link: ${link.id}")
+                onEditClick(link)
+            }
+        ) {
             Icon(
                 imageVector = Icons.Default.Edit,
                 contentDescription = "Edit link"
@@ -86,6 +94,18 @@ private fun LinkActions(
             Icon(
                 imageVector = Icons.Default.Share,
                 contentDescription = "Share options"
+            )
+        }
+        IconButton(
+            onClick = { 
+                Logger.d("LinkItem", "Delete button clicked for link: ${link.id}")
+                onDelete(link)
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete link",
+                tint = MaterialTheme.colorScheme.error
             )
         }
         if (link.lastSyncedAt != null) {
@@ -144,6 +164,7 @@ fun LinkItem(
     onToggleArchive: (Link) -> Unit,
     onToggleStatus: (Link) -> Unit,
     onShare: (Link) -> Unit,
+    onDelete: (Link) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dateFormatter = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
@@ -275,7 +296,8 @@ fun LinkItem(
                         onToggleFavorite = onToggleFavorite,
                         onEditClick = onEditClick,
                         onToggleArchive = onToggleArchive,
-                        onShare = onShare
+                        onShare = onShare,
+                        onDelete = onDelete
                     )
                 }
             }

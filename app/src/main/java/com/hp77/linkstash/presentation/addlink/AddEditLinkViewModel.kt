@@ -9,12 +9,14 @@ import com.hp77.linkstash.domain.usecase.link.AddLinkUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkUseCase
 import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.domain.repository.TagRepository
+import com.hp77.linkstash.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,16 +32,21 @@ class AddEditLinkViewModel @Inject constructor(
     val state: StateFlow<AddEditLinkScreenState> = _state
 
     init {
+        Logger.d("AddEditLinkVM", "Initializing ViewModel")
         // Load available tags
         viewModelScope.launch {
             val allTags = tagRepository.getAllTags().first()
+            Logger.d("AddEditLinkVM", "Loaded ${allTags.size} available tags")
             _state.update { it.copy(availableTags = allTags) }
         }
 
         // Initialize edit mode if linkId is provided
         savedStateHandle.get<String>("linkId")?.let { linkId ->
+            Logger.d("AddEditLinkVM", "Initializing edit mode with linkId: $linkId")
             viewModelScope.launch {
-                linkRepository.getLinkById(linkId)?.let { link ->
+                val link = linkRepository.getLinkById(linkId)
+                if (link != null) {
+                    Logger.d("AddEditLinkVM", "Found link to edit: ${link.url}")
                     _state.update { it.copy(
                         url = link.url,
                         title = link.title,
@@ -53,12 +60,15 @@ class AddEditLinkViewModel @Inject constructor(
                         isEditMode = true,
                         linkId = linkId
                     ) }
+                } else {
+                    Logger.e("AddEditLinkVM", "Link not found for id: $linkId")
                 }
             }
         }
     }
 
     fun onEvent(event: AddEditLinkScreenEvent) {
+        Logger.d("AddEditLinkVM", "Received event: ${event::class.simpleName}")
         when (event) {
             is AddEditLinkScreenEvent.OnUrlChange -> {
                 _state.update { it.copy(url = event.url) }
@@ -120,8 +130,11 @@ class AddEditLinkViewModel @Inject constructor(
                 _state.update { it.copy(newTagName = event.name) }
             }
             is AddEditLinkScreenEvent.OnInitializeEdit -> {
+                Logger.d("AddEditLinkVM", "Initializing edit for linkId: ${event.linkId}")
                 viewModelScope.launch {
-                    linkRepository.getLinkById(event.linkId)?.let { link ->
+                    val link = linkRepository.getLinkById(event.linkId)
+                    if (link != null) {
+                        Logger.d("AddEditLinkVM", "Successfully loaded link for editing")
                         _state.update { currentState ->
                             currentState.copy(
                                 url = link.url,
@@ -153,6 +166,7 @@ class AddEditLinkViewModel @Inject constructor(
                 // Handled by the UI
             }
             is AddEditLinkScreenEvent.OnSave -> {
+                Logger.d("AddEditLinkVM", "Attempting to save link")
                 viewModelScope.launch {
                     try {
                         if (state.value.isEditMode) {
@@ -172,12 +186,17 @@ class AddEditLinkViewModel @Inject constructor(
                                 )
                             )
                             if (result.isFailure) {
-                                throw result.exceptionOrNull() ?: Exception("Unknown error")
+                                val error = result.exceptionOrNull() ?: Exception("Unknown error")
+                                Logger.e("AddEditLinkVM", "Failed to update link", error)
+                                throw error
                             }
+                            Logger.d("AddEditLinkVM", "Successfully updated link")
                         } else {
+                            val newId = UUID.randomUUID().toString()
+                            Logger.d("AddEditLinkVM", "Generated new UUID for link: $newId")
                             val result = addLinkUseCase(
                                 Link(
-                                    id = "",
+                                    id = newId,
                                     url = state.value.url,
                                     title = state.value.title,
                                     description = state.value.description,
@@ -191,11 +210,16 @@ class AddEditLinkViewModel @Inject constructor(
                                 )
                             )
                             if (result.isFailure) {
-                                throw result.exceptionOrNull() ?: Exception("Unknown error")
+                                val error = result.exceptionOrNull() ?: Exception("Unknown error")
+                                Logger.e("AddEditLinkVM", "Failed to add link", error)
+                                throw error
                             }
+                            Logger.d("AddEditLinkVM", "Successfully added new link")
                         }
                         _state.update { it.copy(saved = true) }
+                        Logger.d("AddEditLinkVM", "Updated state: saved=true")
                     } catch (e: Exception) {
+                        Logger.e("AddEditLinkVM", "Error saving link: ${e.message}", e)
                         _state.update { it.copy(error = e.message) }
                     }
                 }

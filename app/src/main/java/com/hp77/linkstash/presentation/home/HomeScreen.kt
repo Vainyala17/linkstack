@@ -55,6 +55,7 @@ import com.hp77.linkstash.presentation.components.LinkItem
 import com.hp77.linkstash.presentation.components.SearchBar
 import com.hp77.linkstash.presentation.components.FilterChips
 import com.hp77.linkstash.presentation.components.ShareBottomSheet
+import com.hp77.linkstash.util.Logger
 
 private fun handleLinkClick(
     clickedLink: Link,
@@ -211,7 +212,10 @@ fun HomeScreen(
                                 LinkItem(
                                     link = link,
                                     onLinkClick = { handleLinkClick(it, context) { link -> selectedLink = link } },
-                                    onEditClick = { onNavigateToEdit(it) },
+                                    onEditClick = { link -> 
+                                        Logger.d("HomeScreen", "Navigating to edit for link: id=${link.id}, url=${link.url}")
+                                        onNavigateToEdit(link) 
+                                    },
                                     onToggleFavorite = {
                                         viewModel.onEvent(HomeScreenEvent.OnToggleFavorite(it))
                                     },
@@ -223,6 +227,9 @@ fun HomeScreen(
                                     },
                                     onShare = { link ->
                                         viewModel.onEvent(HomeScreenEvent.OnShowShareSheet(link))
+                                    },
+                                    onDelete = { link ->
+                                        viewModel.onEvent(HomeScreenEvent.OnDeleteLink(link))
                                     }
                                 )
                             }

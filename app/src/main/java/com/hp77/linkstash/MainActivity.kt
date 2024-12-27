@@ -32,6 +32,7 @@ import com.hp77.linkstash.data.preferences.ThemeMode
 import com.hp77.linkstash.ui.theme.LinkStashTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import com.hp77.linkstash.util.Logger
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -86,6 +87,7 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(Screen.AddLink.route)
                                 },
                                 onNavigateToEdit = { link ->
+                                    Logger.d("MainActivity", "Creating edit route for link: id=${link.id}, url=${link.url}")
                                     navController.navigate(Screen.EditLink.createRoute(link.id))
                                 },
                                 onNavigateToSearch = {
@@ -138,6 +140,7 @@ class MainActivity : ComponentActivity() {
                             )
                         ) { backStackEntry ->
                             val linkId = backStackEntry.arguments?.getString("linkId")
+                            Logger.d("MainActivity", "EditLink screen received linkId: $linkId")
                             AddEditLinkScreen(
                                 onNavigateBack = {
                                     navController.popBackStack()

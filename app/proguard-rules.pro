@@ -1,21 +1,114 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Keep source file names and line numbers for better crash reports
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep your data models and states
+-keep class com.hp77.linkstash.domain.model.** { *; }
+-keep class com.hp77.linkstash.data.local.entity.** { *; }
+-keep class com.hp77.linkstash.presentation.**.State { *; }
+-keep class com.hp77.linkstash.presentation.**.Event { *; }
+-keep class com.hp77.linkstash.presentation.addlink.AddEditLinkScreenState { *; }
+-keepclassmembers class com.hp77.linkstash.presentation.addlink.AddEditLinkScreenState {
+    <fields>;
+    <methods>;
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Keep navigation arguments
+-keepclassmembers class ** implements androidx.navigation.NavArgs {
+    *;
+}
+-keep class com.hp77.linkstash.presentation.navigation.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep sealed classes and their subclasses
+-keep,allowobfuscation class com.hp77.linkstash.presentation.addlink.AddEditLinkScreenEvent
+-keep,allowobfuscation class com.hp77.linkstash.presentation.addlink.AddEditLinkScreenEvent$* {
+    *;
+}
+
+# Keep data classes and their companions
+-keepclassmembers class * {
+    public static ** Companion;
+    public static ** Default;
+    public static ** Factory;
+    public static ** INSTANCE;
+}
+-keepclassmembers class * implements java.io.Serializable {
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
+
+# Keep Compose related classes
+-keep class androidx.compose.** { *; }
+-keepclassmembers class androidx.compose.** { *; }
+
+# Keep Kotlin Serialization and Reflection
+-keepattributes *Annotation*, InnerClasses, Signature, Exceptions
+-dontnote kotlinx.serialization.AnnotationsKt
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
+-keepclasseswithmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+}
+
+# Keep Room entities and queries
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-keep @androidx.room.Dao class *
+-keepclassmembers class * extends androidx.room.RoomDatabase {
+    abstract androidx.room.Dao *;
+}
+-dontwarn androidx.room.paging.**
+
+# Keep Hilt and dependency injection
+-keep class dagger.hilt.** { *; }
+-keep class javax.inject.** { *; }
+-keep class * extends dagger.hilt.android.lifecycle.HiltViewModel
+-keepclasseswithmembers class * {
+    @dagger.* <methods>;
+    @javax.inject.* <methods>;
+}
+-keepclasseswithmembers class * {
+    @javax.inject.Inject <init>(...);
+}
+
+# Keep SavedStateHandle
+-keepclassmembers class * extends androidx.lifecycle.ViewModel {
+    <init>(...);
+}
+-keepclassmembers class * extends androidx.lifecycle.AndroidViewModel {
+    <init>(...);
+}
+
+# Keep Coroutines
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+-keepclassmembers class kotlin.coroutines.** {
+    *;
+}
+
+# Keep Parcelable implementations
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
+
+# Keep Serializable implementations
+-keepnames class * implements java.io.Serializable
+
+# Keep enum classes
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# Keep StateFlow and SharedFlow
+-keepclassmembers class kotlin.coroutines.Continuation {
+    *;
+}
+-keepclassmembers class kotlinx.coroutines.flow.** {
+    *;
+}
