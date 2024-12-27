@@ -30,6 +30,14 @@ interface GitHubService {
         @Path("path") path: String
     ): Response<GitHubContent>
 
+    @GET("repos/{owner}/{repo}/contents/{path}")
+    suspend fun listDirectoryContents(
+        @Header("Authorization") token: String,
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("path") path: String
+    ): Response<List<GitHubContent>>
+
     @PUT("repos/{owner}/{repo}/contents/{path}")
     suspend fun updateFile(
         @Header("Authorization") token: String,

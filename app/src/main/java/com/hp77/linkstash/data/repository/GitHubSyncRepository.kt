@@ -161,7 +161,7 @@ class GitHubSyncRepository @Inject constructor(
 
         // First, let's get all markdown files from the repo
         Logger.d(TAG, "Listing repository contents")
-        val contentsResponse = gitHubService.getFileContent(
+        val contentsResponse = gitHubService.listDirectoryContents(
             authHeader,
             repoOwner,
             repoName,
@@ -170,9 +170,7 @@ class GitHubSyncRepository @Inject constructor(
 
         if (contentsResponse.isSuccessful) {
             withContext(Dispatchers.IO) {
-                val contents: List<GitHubContent> = contentsResponse.body()?.let { content ->
-                    if (content.type == "dir") listOf(content) else emptyList()
-                } ?: emptyList()
+                val contents = contentsResponse.body() ?: emptyList()
                 
                 val linkstashFiles = contents.filter { content -> 
                     content.type == "file" && FILE_PATTERN.matcher(content.name).matches() 
@@ -226,16 +224,11 @@ class GitHubSyncRepository @Inject constructor(
             }
         }
 
-        // Convert links to markdown and encode in base64
-        Logger.d(TAG, "Converting ${links.size} links to markdown")
-        val markdown = MarkdownUtils.run { links.toMarkdown() }
-        val content = Base64.encodeToString(markdown.toByteArray(), Base64.NO_WRAP)
-
         // Generate filename with date
         val filename = getBackupFilename()
         Logger.d(TAG, "Using filename: $filename")
 
-        // Try to get existing file to get its SHA
+        // Try to get existing file to get its SHA and content
         Logger.d(TAG, "Checking for existing file: $filename")
         val fileResponse = gitHubService.getFileContent(
             authHeader,
@@ -244,15 +237,29 @@ class GitHubSyncRepository @Inject constructor(
             filename
         )
 
-        val sha = if (fileResponse.isSuccessful) {
-            Logger.d(TAG, "Found existing file, using its SHA")
-            fileResponse.body()?.sha
+        // Get existing links if file exists
+        val existingLinks = if (fileResponse.isSuccessful) {
+            Logger.d(TAG, "Found existing file, reading content")
+            fileResponse.body()?.content?.let { base64Content ->
+                val decodedContent = String(Base64.decode(base64Content, Base64.DEFAULT))
+                MarkdownParser.parseMarkdown(decodedContent)
+            } ?: emptyList()
         } else {
-            Logger.d(TAG, "File doesn't exist yet, will create new one")
-            null
+            Logger.d(TAG, "No existing file for today, will create new one")
+            emptyList()
         }
 
+        // Merge existing and new links, removing duplicates by URL
+        val mergedLinks = (existingLinks + links).distinctBy { it.url }
+        Logger.d(TAG, "Merged links: ${mergedLinks.size} (${existingLinks.size} existing + ${links.size} new)")
+
+        // Convert merged links to markdown and encode in base64
+        Logger.d(TAG, "Converting ${mergedLinks.size} links to markdown")
+        val markdown = MarkdownUtils.run { mergedLinks.toMarkdown() }
+        val content = Base64.encodeToString(markdown.toByteArray(), Base64.NO_WRAP)
+
         // Update or create file
+        val sha = if (fileResponse.isSuccessful) fileResponse.body()?.sha else null
         Logger.d(TAG, "Updating file with ${if (sha != null) "existing SHA" else "no SHA (new file)"}")
         val updateResponse = gitHubService.updateFile(
             authHeader,
@@ -260,7 +267,7 @@ class GitHubSyncRepository @Inject constructor(
             repoName,
             filename,
             UpdateFileRequest(
-                message = COMMIT_MESSAGE,
+                message = if (sha != null) "Update links" else "Create backup file for ${filename.substringAfter(FILE_PREFIX).substringBefore('.')}",
                 content = content,
                 sha = sha
             )
