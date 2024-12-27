@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 private const val TAG = "SettingsViewModel"
@@ -163,11 +164,19 @@ class SettingsViewModel @Inject constructor(
                                             deviceFlowStatus = ""
                                         ) }
                                     }
+                                    error is CancellationException -> {
+                                        Logger.d(TAG, "GitHub authorization was cancelled by user")
+                                        _state.update { it.copy(
+                                            isPollingForGitHubToken = false,
+                                            deviceFlowStatus = "",
+                                            showGitHubDeviceFlowDialog = false
+                                        ) }
+                                    }
                                     else -> {
                                         Logger.e(TAG, "Failed to get token", error)
                                         _state.update { it.copy(
                                             isPollingForGitHubToken = false,
-                                            error = error.message,
+                                            error = "Unable to connect to GitHub. Please try again.",
                                             deviceFlowStatus = ""
                                         ) }
                                     }
