@@ -11,9 +11,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +29,7 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val dateFormatter = remember { SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()) }
 
     Scaffold(
         topBar = {
@@ -93,6 +99,76 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true
                                 )
+
+                                // Sync Status
+                                when (val progress = state.syncProgress) {
+                                    is SyncProgress.InProgress -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                            Text(
+                                                text = progress.message,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    is SyncProgress.Success -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.CloudDone,
+                                                contentDescription = "Sync successful",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Column {
+                                                Text(
+                                                    text = "Last synced: ${dateFormatter.format(Date(progress.timestamp))}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                if (progress.newLinks > 0) {
+                                                    Text(
+                                                        text = "${progress.newLinks} new links imported",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    is SyncProgress.Error -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.CloudOff,
+                                                contentDescription = "Sync failed",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Text(
+                                                text = progress.message,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                    else -> { /* No status to show */ }
+                                }
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -115,23 +191,11 @@ fun SettingsScreen(
                                 }
                             }
                         } else {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            Button(
+                                onClick = { viewModel.onEvent(SettingsScreenEvent.ShowGitHubDeviceFlow) },
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                OutlinedTextField(
-                                    value = state.githubToken,
-                                    onValueChange = { viewModel.onEvent(SettingsScreenEvent.UpdateGitHubToken(it)) },
-                                    label = { Text("GitHub Personal Access Token") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
-                                Button(
-                                    onClick = { viewModel.onEvent(SettingsScreenEvent.ConnectGitHub) },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Connect GitHub")
-                                }
+                                Text("Connect GitHub")
                             }
                         }
                     }
@@ -209,6 +273,71 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // GitHub Device Flow Dialog
+    if (state.showGitHubDeviceFlowDialog) {
+        val uriHandler = LocalUriHandler.current
+        AlertDialog(
+            onDismissRequest = { viewModel.onEvent(SettingsScreenEvent.HideGitHubDeviceFlow) },
+            title = { Text("Connect GitHub") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (state.githubUserCode.isEmpty()) {
+                        CircularProgressIndicator()
+                        Text("Initializing GitHub connection...")
+                    } else {
+                        Text(
+                            text = "Enter this code on GitHub:",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = state.githubUserCode,
+                            style = MaterialTheme.typography.headlineMedium,
+                            textAlign = TextAlign.Center
+                        )
+                        Button(
+                            onClick = { uriHandler.openUri(state.githubVerificationUri) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Open GitHub")
+                        }
+                        if (state.isPollingForGitHubToken) {
+                            CircularProgressIndicator()
+                            Text("Waiting for authorization...")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (state.githubUserCode.isEmpty()) {
+                    Button(
+                        onClick = { viewModel.onEvent(SettingsScreenEvent.InitiateGitHubDeviceFlow) }
+                    ) {
+                        Text("Start")
+                    }
+                } else {
+                    Button(
+                        onClick = { viewModel.onEvent(SettingsScreenEvent.CancelGitHubDeviceFlow) }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            },
+            dismissButton = {
+                if (state.githubUserCode.isEmpty()) {
+                    TextButton(
+                        onClick = { viewModel.onEvent(SettingsScreenEvent.HideGitHubDeviceFlow) }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
 
     // HackerNews Login Dialog

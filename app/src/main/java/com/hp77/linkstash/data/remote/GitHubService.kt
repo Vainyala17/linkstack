@@ -1,6 +1,5 @@
 package com.hp77.linkstash.data.remote
 
-import com.hp77.linkstash.domain.model.Link
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -10,11 +9,12 @@ interface GitHubService {
         @Header("Authorization") token: String
     ): Response<GitHubUser>
 
-    @GET("user/repos")
-    suspend fun getRepositories(
+    @GET("repos/{owner}/{repo}")
+    suspend fun getRepository(
         @Header("Authorization") token: String,
-        @Query("per_page") perPage: Int = 100
-    ): Response<List<GitHubRepo>>
+        @Path("owner") owner: String,
+        @Path("repo") repo: String
+    ): Response<GitHubRepo>
 
     @POST("user/repos")
     suspend fun createRepository(
@@ -86,28 +86,3 @@ data class GitHubCommit(
     val sha: String,
     val message: String
 )
-
-// Extension function to convert Link to markdown format
-fun List<Link>.toMarkdown(): String {
-    return buildString {
-        appendLine("# LinkStash Backup")
-        appendLine()
-        appendLine("## Links")
-        appendLine()
-        
-        this@toMarkdown.forEach { link ->
-            appendLine("### ${link.title}")
-            appendLine("- URL: ${link.url}")
-            appendLine("- Type: ${link.type}")
-            appendLine("- Added: ${link.createdAt}")
-            appendLine("- Status: ${if (link.isCompleted) "READ" else "UNREAD"}")
-            if (link.tags.isNotEmpty()) {
-                appendLine("- Tags: ${link.tags.joinToString(", ") { it.name }}")
-            }
-            if (!link.notes.isNullOrBlank()) {
-                appendLine("- Notes: ${link.notes}")
-            }
-            appendLine()
-        }
-    }
-}

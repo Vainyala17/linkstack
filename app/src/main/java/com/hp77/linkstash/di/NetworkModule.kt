@@ -1,5 +1,6 @@
 package com.hp77.linkstash.di
 
+import com.hp77.linkstash.data.remote.GitHubDeviceFlowService
 import com.hp77.linkstash.data.remote.GitHubService
 import com.hp77.linkstash.data.remote.HNConstants
 import com.hp77.linkstash.data.remote.HackerNewsService
@@ -10,6 +11,9 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.util.concurrent.TimeUnit
@@ -52,12 +56,37 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideMoshi(): Moshi {
+        return Moshi.Builder()
+            .add(KotlinJsonAdapterFactory())
+            .build()
+    }
+
+    @Provides
+    @Singleton
     @Named("github")
-    fun provideGitHubRetrofit(@Named("github") okHttpClient: OkHttpClient): Retrofit {
+    fun provideGitHubRetrofit(
+        @Named("github") okHttpClient: OkHttpClient,
+        moshi: Moshi
+    ): Retrofit {
         return Retrofit.Builder()
             .baseUrl("https://api.github.com/")
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("github-oauth")
+    fun provideGitHubOAuthRetrofit(
+        @Named("github") okHttpClient: OkHttpClient,
+        moshi: Moshi
+    ): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://github.com/")
+            .client(okHttpClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
     }
 
@@ -88,6 +117,12 @@ object NetworkModule {
     @Singleton
     fun provideGitHubService(@Named("github") retrofit: Retrofit): GitHubService {
         return retrofit.create(GitHubService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGitHubDeviceFlowService(@Named("github-oauth") retrofit: Retrofit): GitHubDeviceFlowService {
+        return retrofit.create(GitHubDeviceFlowService::class.java)
     }
 
     @Provides

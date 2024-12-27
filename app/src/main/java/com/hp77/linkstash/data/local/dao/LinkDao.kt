@@ -85,4 +85,27 @@ interface LinkDao {
 
     @Query("DELETE FROM link_tag_cross_ref WHERE linkId = :linkId")
     suspend fun deleteAllTagsForLink(linkId: String)
+
+    // Sync-related methods
+    @Query("UPDATE links SET lastSyncedAt = :timestamp, syncError = NULL WHERE id = :linkId")
+    suspend fun updateSyncSuccess(linkId: String, timestamp: Long = System.currentTimeMillis())
+
+    @Query("UPDATE links SET syncError = :error WHERE id = :linkId")
+    suspend fun updateSyncError(linkId: String, error: String)
+
+    @Query("UPDATE links SET lastSyncedAt = NULL, syncError = NULL WHERE id = :linkId")
+    suspend fun clearSyncStatus(linkId: String)
+
+    @Query("SELECT * FROM links WHERE lastSyncedAt IS NULL OR syncError IS NOT NULL")
+    suspend fun getUnsyncedLinks(): List<LinkEntity>
+
+    // Batch sync status updates
+    @Query("UPDATE links SET lastSyncedAt = :timestamp, syncError = NULL WHERE id IN (:linkIds)")
+    suspend fun updateSyncSuccessBatch(linkIds: List<String>, timestamp: Long = System.currentTimeMillis())
+
+    @Query("UPDATE links SET syncError = :error WHERE id IN (:linkIds)")
+    suspend fun updateSyncErrorBatch(linkIds: List<String>, error: String)
+
+    @Query("UPDATE links SET lastSyncedAt = NULL, syncError = NULL WHERE id IN (:linkIds)")
+    suspend fun clearSyncStatusBatch(linkIds: List<String>)
 }

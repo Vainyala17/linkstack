@@ -1,3 +1,17 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        load(FileInputStream(localPropertiesFile))
+    }
+}
+
+fun getLocalProperty(key: String, defaultValue: String = ""): String {
+    return localProperties.getProperty(key, defaultValue)
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -23,6 +37,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Add GitHub OAuth credentials
+        buildConfigField("String", "GITHUB_CLIENT_ID", "\"${getLocalProperty("github.client.id")}\"")
+        buildConfigField("String", "GITHUB_CLIENT_SECRET", "\"${getLocalProperty("github.client.secret")}\"")
     }
 
     buildTypes {
@@ -53,6 +71,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.6"
@@ -81,7 +100,6 @@ android {
             variantBuilder.enableAndroidTest = false
         }
     }
-
 }
 
 dependencies {
@@ -121,8 +139,14 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.retrofit.converter.scalars)
+    implementation(libs.retrofit.converter.moshi)
     implementation(libs.okhttp.logging)
     implementation(libs.jsoup)
+    
+    // Moshi
+    implementation(libs.moshi)
+    implementation(libs.moshi.kotlin)
+    kapt(libs.moshi.kotlin.codegen)
 
     // Image Loading
     implementation(libs.coil.compose)
