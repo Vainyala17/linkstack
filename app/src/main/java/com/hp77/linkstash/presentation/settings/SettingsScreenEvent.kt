@@ -2,8 +2,11 @@ package com.hp77.linkstash.presentation.settings
 
 sealed class SettingsScreenEvent {
     // GitHub Events
-    data class UpdateGitHubRepoName(val name: String) : SettingsScreenEvent()
-    data class UpdateGitHubRepoOwner(val owner: String) : SettingsScreenEvent()
+    object StartEditingGitHubRepo : SettingsScreenEvent()
+    object CancelEditingGitHubRepo : SettingsScreenEvent()
+    object SaveGitHubRepo : SettingsScreenEvent()
+    data class UpdateTempGitHubRepoName(val name: String) : SettingsScreenEvent()
+    data class UpdateTempGitHubRepoOwner(val owner: String) : SettingsScreenEvent()
     object ShowGitHubDeviceFlow : SettingsScreenEvent()
     object HideGitHubDeviceFlow : SettingsScreenEvent()
     object InitiateGitHubDeviceFlow : SettingsScreenEvent()

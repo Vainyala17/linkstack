@@ -35,11 +35,15 @@ class SettingsViewModel @Inject constructor(
             Logger.d(TAG, "Initializing ViewModel")
             // Initialize GitHub state
             val isAuthenticated = gitHubSyncRepository.isAuthenticated()
+            val repoName = authPreferences.githubRepoName.first() ?: ""
+            val repoOwner = authPreferences.githubRepoOwner.first() ?: ""
             Logger.d(TAG, "GitHub authenticated: $isAuthenticated")
             _state.update { it.copy(
                 isGitHubAuthenticated = isAuthenticated,
-                githubRepoName = authPreferences.githubRepoName.first() ?: "",
-                githubRepoOwner = authPreferences.githubRepoOwner.first() ?: "",
+                githubRepoName = repoName,
+                githubRepoOwner = repoOwner,
+                tempGithubRepoName = repoName,
+                tempGithubRepoOwner = repoOwner,
                 isHackerNewsAuthenticated = hackerNewsRepository.isAuthenticated()
             ) }
         }
@@ -47,19 +51,38 @@ class SettingsViewModel @Inject constructor(
 
     fun onEvent(event: SettingsScreenEvent) {
         when (event) {
-            is SettingsScreenEvent.UpdateGitHubRepoName -> {
-                Logger.d(TAG, "Updating GitHub repo name: ${event.name}")
-                _state.update { it.copy(githubRepoName = event.name) }
+            is SettingsScreenEvent.StartEditingGitHubRepo -> {
+                _state.update { it.copy(
+                    isEditingGitHubRepo = true,
+                    tempGithubRepoName = it.githubRepoName,
+                    tempGithubRepoOwner = it.githubRepoOwner
+                ) }
+            }
+            is SettingsScreenEvent.CancelEditingGitHubRepo -> {
+                _state.update { it.copy(
+                    isEditingGitHubRepo = false,
+                    tempGithubRepoName = it.githubRepoName,
+                    tempGithubRepoOwner = it.githubRepoOwner
+                ) }
+            }
+            is SettingsScreenEvent.SaveGitHubRepo -> {
                 viewModelScope.launch {
-                    authPreferences.updateGitHubRepoName(event.name)
+                    val newName = _state.value.tempGithubRepoName
+                    val newOwner = _state.value.tempGithubRepoOwner
+                    authPreferences.updateGitHubRepoName(newName)
+                    authPreferences.updateGitHubRepoOwner(newOwner)
+                    _state.update { it.copy(
+                        isEditingGitHubRepo = false,
+                        githubRepoName = newName,
+                        githubRepoOwner = newOwner
+                    ) }
                 }
             }
-            is SettingsScreenEvent.UpdateGitHubRepoOwner -> {
-                Logger.d(TAG, "Updating GitHub repo owner: ${event.owner}")
-                _state.update { it.copy(githubRepoOwner = event.owner) }
-                viewModelScope.launch {
-                    authPreferences.updateGitHubRepoOwner(event.owner)
-                }
+            is SettingsScreenEvent.UpdateTempGitHubRepoName -> {
+                _state.update { it.copy(tempGithubRepoName = event.name) }
+            }
+            is SettingsScreenEvent.UpdateTempGitHubRepoOwner -> {
+                _state.update { it.copy(tempGithubRepoOwner = event.owner) }
             }
             is SettingsScreenEvent.ShowGitHubDeviceFlow -> {
                 Logger.d(TAG, "Showing GitHub device flow dialog")

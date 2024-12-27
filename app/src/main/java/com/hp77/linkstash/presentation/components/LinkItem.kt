@@ -15,19 +15,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Unarchive
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedAssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -108,7 +103,7 @@ private fun LinkActions(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.requiredWidth(200.dp),
+        modifier = modifier.requiredWidth(160.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -117,17 +112,6 @@ private fun LinkActions(
                 imageVector = if (link.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (link.isFavorite) "Remove from favorites" else "Add to favorites",
                 tint = if (link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
-        }
-        IconButton(
-            onClick = { 
-                Logger.d("LinkItem", "Edit button clicked for link: ${link.id}")
-                onEditClick(link)
-            }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Edit link"
             )
         }
         IconButton(onClick = { onToggleArchive(link) }) {
@@ -142,16 +126,59 @@ private fun LinkActions(
                 contentDescription = "Share options"
             )
         }
-        IconButton(
-            onClick = { 
-                Logger.d("LinkItem", "Delete button clicked for link: ${link.id}")
-                onDelete(link)
-            }
-        ) {
+        LinkOptionsMenu(
+            onEditClick = { onEditClick(link) },
+            onDelete = { onDelete(link) }
+        )
+    }
+}
+
+@Composable
+private fun LinkOptionsMenu(
+    onEditClick: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Delete link",
-                tint = MaterialTheme.colorScheme.error
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More options"
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Edit") },
+                onClick = {
+                    onEditClick()
+                    expanded = false
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null
+                    )
+                }
+            )
+            DropdownMenuItem(
+                text = { Text("Delete") },
+                onClick = {
+                    onDelete()
+                    expanded = false
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             )
         }
     }
@@ -306,14 +333,14 @@ fun LinkItem(
                 )
             }
 
-            if (tags.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (tags.isNotEmpty()) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -324,18 +351,20 @@ fun LinkItem(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-                    LinkActions(
-                        link = link.copy(
-                            isFavorite = isFavorite,
-                            isArchived = isArchived
-                        ),
-                        onToggleFavorite = onToggleFavorite,
-                        onEditClick = onEditClick,
-                        onToggleArchive = onToggleArchive,
-                        onShare = onShare,
-                        onDelete = onDelete
-                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
+                LinkActions(
+                    link = link.copy(
+                        isFavorite = isFavorite,
+                        isArchived = isArchived
+                    ),
+                    onToggleFavorite = onToggleFavorite,
+                    onEditClick = onEditClick,
+                    onToggleArchive = onToggleArchive,
+                    onShare = onShare,
+                    onDelete = onDelete
+                )
             }
         }
     }

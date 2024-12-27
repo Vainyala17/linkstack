@@ -85,20 +85,66 @@ fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                OutlinedTextField(
-                                    value = state.githubRepoName,
-                                    onValueChange = { viewModel.onEvent(SettingsScreenEvent.UpdateGitHubRepoName(it)) },
-                                    label = { Text("Repository Name") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
-                                OutlinedTextField(
-                                    value = state.githubRepoOwner,
-                                    onValueChange = { viewModel.onEvent(SettingsScreenEvent.UpdateGitHubRepoOwner(it)) },
-                                    label = { Text("Repository Owner") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
+                                if (state.isEditingGitHubRepo) {
+                                    // Edit mode
+                                    OutlinedTextField(
+                                        value = state.tempGithubRepoName,
+                                        onValueChange = { viewModel.onEvent(SettingsScreenEvent.UpdateTempGitHubRepoName(it)) },
+                                        label = { Text("Repository Name") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true
+                                    )
+                                    OutlinedTextField(
+                                        value = state.tempGithubRepoOwner,
+                                        onValueChange = { viewModel.onEvent(SettingsScreenEvent.UpdateTempGitHubRepoOwner(it)) },
+                                        label = { Text("Repository Owner") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { viewModel.onEvent(SettingsScreenEvent.CancelEditingGitHubRepo) },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("Cancel")
+                                        }
+                                        Button(
+                                            onClick = { viewModel.onEvent(SettingsScreenEvent.SaveGitHubRepo) },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("Save")
+                                        }
+                                    }
+                                } else {
+                                    // Read-only mode
+                                    OutlinedTextField(
+                                        value = state.githubRepoName,
+                                        onValueChange = { },
+                                        label = { Text("Repository Name") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        readOnly = true,
+                                        enabled = false
+                                    )
+                                    OutlinedTextField(
+                                        value = state.githubRepoOwner,
+                                        onValueChange = { },
+                                        label = { Text("Repository Owner") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                        readOnly = true,
+                                        enabled = false
+                                    )
+                                    Button(
+                                        onClick = { viewModel.onEvent(SettingsScreenEvent.StartEditingGitHubRepo) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Edit Repository Details")
+                                    }
+                                }
 
                                 // Sync Status
                                 when (val progress = state.syncProgress) {
