@@ -11,6 +11,8 @@ import com.hp77.linkstash.domain.usecase.link.ShareToHackerNewsUseCase
 import com.hp77.linkstash.domain.usecase.sync.SyncLinksToGitHubUseCase
 import com.hp77.linkstash.data.repository.HackerNewsRepository
 import com.hp77.linkstash.data.repository.GitHubSyncRepository
+import com.hp77.linkstash.domain.usecase.profile.GetGitHubProfileUseCase
+import com.hp77.linkstash.domain.usecase.profile.GetHackerNewsProfileUseCase
 import com.hp77.linkstash.domain.usecase.tag.ManageTagsUseCase
 import dagger.Module
 import dagger.Provides
@@ -71,4 +73,16 @@ object UseCaseModule {
         gitHubSyncRepository: GitHubSyncRepository,
         linkRepository: LinkRepository
     ): SyncLinksToGitHubUseCase = SyncLinksToGitHubUseCase(gitHubSyncRepository, linkRepository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideGetGitHubProfileUseCase(
+        gitHubSyncRepository: GitHubSyncRepository
+    ): GetGitHubProfileUseCase = GetGitHubProfileUseCase(gitHubSyncRepository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideGetHackerNewsProfileUseCase(
+        hackerNewsRepository: HackerNewsRepository
+    ): GetHackerNewsProfileUseCase = GetHackerNewsProfileUseCase(hackerNewsRepository)
 }

@@ -5,9 +5,11 @@ data class SettingsScreenState(
     val isGitHubSyncing: Boolean = false,
     val githubRepoName: String = "",
     val githubRepoOwner: String = "",
+    val githubProfile: GitHubProfile? = null,
     val isHackerNewsAuthenticated: Boolean = false,
     val hackerNewsUsername: String = "",
     val hackerNewsPassword: String = "",
+    val hackerNewsProfile: HackerNewsProfile? = null,
     val showHackerNewsLoginDialog: Boolean = false,
     val showGitHubDeviceFlowDialog: Boolean = false,
     val githubDeviceCode: String = "",
@@ -16,8 +18,26 @@ data class SettingsScreenState(
     val isPollingForGitHubToken: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,
-    // New sync status fields
     val syncProgress: SyncProgress = SyncProgress.None
+)
+
+data class GitHubProfile(
+    val login: String,
+    val name: String?,
+    val avatarUrl: String,
+    val bio: String?,
+    val location: String?,
+    val publicRepos: Int,
+    val followers: Int,
+    val following: Int,
+    val createdAt: String
+)
+
+data class HackerNewsProfile(
+    val username: String,
+    val karma: Int,
+    val about: String?,
+    val createdAt: Long
 )
 
 sealed class SyncProgress {

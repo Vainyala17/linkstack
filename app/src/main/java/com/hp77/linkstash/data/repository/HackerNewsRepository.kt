@@ -3,7 +3,9 @@ package com.hp77.linkstash.data.repository
 import com.hp77.linkstash.data.preferences.AuthPreferences
 import com.hp77.linkstash.data.remote.HNConstants
 import com.hp77.linkstash.data.remote.HackerNewsService
+import com.hp77.linkstash.data.remote.HackerNewsUser
 import com.hp77.linkstash.data.remote.getHNUrl
+import com.hp77.linkstash.data.remote.parseHNUserProfile
 import com.hp77.linkstash.domain.model.Link
 import kotlinx.coroutines.flow.first
 import org.jsoup.Jsoup
@@ -78,6 +80,25 @@ class HackerNewsRepository @Inject constructor(
         } catch (e: Exception) {
             false
         }
+    }
+
+    suspend fun getCurrentUser(): Result<HackerNewsUser> = runCatching {
+        val cookie = authPreferences.hackerNewsToken.first()
+            ?: throw IllegalStateException("Not logged in to HackerNews")
+
+        // Extract username from cookie
+        // Cookie format is "user=<username>; Path=/; HttpOnly"
+        val username = cookie.split(";").firstOrNull { it.trim().startsWith("user=") }
+            ?.substringAfter("user=")
+            ?: throw IllegalStateException("Invalid HackerNews cookie")
+
+        val response = hackerNewsService.getUser(username)
+        if (!response.isSuccessful) {
+            throw Exception("Failed to get user profile: ${response.errorBody()?.string()}")
+        }
+
+        response.body()?.parseHNUserProfile()
+            ?: throw Exception("Empty response from HackerNews")
     }
 
     suspend fun logout() {

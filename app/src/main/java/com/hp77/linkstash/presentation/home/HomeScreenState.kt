@@ -2,6 +2,8 @@ package com.hp77.linkstash.presentation.home
 
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.model.LinkFilter
+import com.hp77.linkstash.domain.model.GitHubProfile
+import com.hp77.linkstash.domain.model.HackerNewsProfile
 import com.hp77.linkstash.data.preferences.ThemeMode
 
 data class HomeScreenState(
@@ -14,5 +16,7 @@ data class HomeScreenState(
     val showShareSheet: Boolean = false,
     val selectedLink: Link? = null,
     val selectedFilter: LinkFilter = LinkFilter.All,
-    val currentTheme: ThemeMode = ThemeMode.SYSTEM
+    val currentTheme: ThemeMode = ThemeMode.SYSTEM,
+    val githubProfile: GitHubProfile? = null,
+    val hackerNewsProfile: HackerNewsProfile? = null
 )

@@ -296,6 +296,15 @@ class GitHubSyncRepository @Inject constructor(
         Logger.d(TAG, "Sync completed successfully")
     }
 
+    suspend fun getCurrentUser(): Result<GitHubUser> = runCatching {
+        val token = authPreferences.githubToken.first() ?: throw IllegalStateException("GitHub token not found")
+        val response = gitHubService.getCurrentUser("token $token")
+        if (!response.isSuccessful) {
+            throw Exception(handleErrorResponse(response, "Failed to get user info"))
+        }
+        response.body() ?: throw Exception("Empty response body")
+    }
+
     suspend fun isAuthenticated(): Boolean {
         return try {
             val token = authPreferences.githubToken.first()

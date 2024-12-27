@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.model.LinkFilter
+import com.hp77.linkstash.domain.model.GitHubProfile
+import com.hp77.linkstash.domain.model.HackerNewsProfile
+import com.hp77.linkstash.domain.usecase.profile.GetGitHubProfileUseCase
+import com.hp77.linkstash.domain.usecase.profile.GetHackerNewsProfileUseCase
 import com.hp77.linkstash.domain.usecase.link.GetLinksUseCase
 import com.hp77.linkstash.domain.usecase.link.UpdateLinkStateUseCase
 import com.hp77.linkstash.domain.usecase.link.ToggleLinkStatusUseCase
@@ -32,6 +36,8 @@ class HomeViewModel @Inject constructor(
     private val themePreferences: ThemePreferences,
     private val shareToHackerNewsUseCase: ShareToHackerNewsUseCase,
     private val syncLinksToGitHubUseCase: SyncLinksToGitHubUseCase,
+    private val getGitHubProfileUseCase: GetGitHubProfileUseCase,
+    private val getHackerNewsProfileUseCase: GetHackerNewsProfileUseCase,
     private val linkRepository: LinkRepository
 ) : ViewModel() {
 
@@ -44,6 +50,8 @@ class HomeViewModel @Inject constructor(
     private val _selectedLink = MutableStateFlow<Link?>(null)
     private val _selectedFilter = MutableStateFlow<LinkFilter>(LinkFilter.All)
     private val _currentTheme = MutableStateFlow(ThemeMode.SYSTEM)
+    private val _githubProfile = MutableStateFlow<GitHubProfile?>(null)
+    private val _hackerNewsProfile = MutableStateFlow<HackerNewsProfile?>(null)
 
     init {
         viewModelScope.launch {
@@ -77,7 +85,9 @@ class HomeViewModel @Inject constructor(
         val showShareSheet: Boolean,
         val selectedLink: Link?,
         val selectedFilter: LinkFilter,
-        val currentTheme: ThemeMode
+        val currentTheme: ThemeMode,
+        val githubProfile: GitHubProfile?,
+        val hackerNewsProfile: HackerNewsProfile?
     ) {
         fun toHomeScreenState() = HomeScreenState(
             links = links,
@@ -89,7 +99,9 @@ class HomeViewModel @Inject constructor(
             showShareSheet = showShareSheet,
             selectedLink = selectedLink,
             selectedFilter = selectedFilter,
-            currentTheme = currentTheme
+            currentTheme = currentTheme,
+            githubProfile = githubProfile,
+            hackerNewsProfile = hackerNewsProfile
         )
     }
 
@@ -103,7 +115,9 @@ class HomeViewModel @Inject constructor(
         _showShareSheet,
         _selectedLink,
         _selectedFilter,
-        _currentTheme
+        _currentTheme,
+        _githubProfile,
+        _hackerNewsProfile
     ) { args -> 
         ViewModelState(
             links = args[0] as List<Link>,
@@ -115,7 +129,9 @@ class HomeViewModel @Inject constructor(
             showShareSheet = args[6] as Boolean,
             selectedLink = args[7] as Link?,
             selectedFilter = args[8] as LinkFilter,
-            currentTheme = args[9] as ThemeMode
+            currentTheme = args[9] as ThemeMode,
+            githubProfile = args[10] as GitHubProfile?,
+            hackerNewsProfile = args[11] as HackerNewsProfile?
         ).toHomeScreenState()
     }.stateIn(
         scope = viewModelScope,
@@ -194,9 +210,19 @@ class HomeViewModel @Inject constructor(
             }
             HomeScreenEvent.OnProfileClick -> {
                 _showProfile.value = true
+                viewModelScope.launch {
+                    try {
+                        _githubProfile.value = getGitHubProfileUseCase().getOrNull()
+                        _hackerNewsProfile.value = getHackerNewsProfileUseCase().getOrNull()
+                    } catch (e: Exception) {
+                        _error.value = e.message
+                    }
+                }
             }
             HomeScreenEvent.OnProfileDismiss -> {
                 _showProfile.value = false
+                _githubProfile.value = null
+                _hackerNewsProfile.value = null
             }
             is HomeScreenEvent.OnShowShareSheet -> {
                 _selectedLink.value = event.link

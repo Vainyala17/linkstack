@@ -51,7 +51,12 @@ interface GitHubService {
 data class GitHubUser(
     val login: String,
     val id: Long,
-    val name: String?
+    val name: String?,
+    val avatar_url: String,
+    val bio: String?,
+    val public_repos: Int,
+    val followers: Int,
+    val following: Int
 )
 
 data class GitHubRepo(

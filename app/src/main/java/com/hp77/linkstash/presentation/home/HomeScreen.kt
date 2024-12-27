@@ -3,8 +3,13 @@ package com.hp77.linkstash.presentation.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.hp77.linkstash.presentation.components.NoRippleInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -323,8 +328,94 @@ fun HomeScreen(
         AlertDialog(
             onDismissRequest = { viewModel.onEvent(HomeScreenEvent.OnProfileDismiss) },
             icon = { Icon(Icons.Default.Person, contentDescription = null) },
-            title = { Text("Profile") },
-            text = { Text("Profile options coming soon!") },
+            title = { Text("Connected Accounts") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    state.githubProfile?.let { profile ->
+                        // GitHub Profile Section
+                        Column {
+                            Text(
+                                text = "GitHub",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AsyncImage(
+                                    model = profile.avatarUrl,
+                                    contentDescription = "GitHub Avatar",
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = profile.name ?: profile.login,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    profile.bio?.let { bio ->
+                                        Text(
+                                            text = bio,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text("${profile.publicRepos} repositories")
+                                Text("${profile.followers} followers")
+                                Text("${profile.following} following")
+                            }
+                        }
+                    }
+
+                    state.hackerNewsProfile?.let { profile ->
+                        // HackerNews Profile Section
+                        Column {
+                            Text(
+                                text = "HackerNews",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = profile.username,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            profile.about?.let { about ->
+                                Text(
+                                    text = about,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("${profile.karma} karma")
+                        }
+                    }
+
+                    if (state.githubProfile == null && state.hackerNewsProfile == null) {
+                        Text(
+                            text = "No accounts connected. You can connect to GitHub and HackerNews in Settings.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(onClick = { viewModel.onEvent(HomeScreenEvent.OnProfileDismiss) }) {
                     Text("Close")
