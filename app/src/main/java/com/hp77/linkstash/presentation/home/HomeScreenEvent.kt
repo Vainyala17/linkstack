@@ -24,4 +24,10 @@ sealed class HomeScreenEvent {
     object NavigateToSettings : HomeScreenEvent()
     object ClearGitHubProfile : HomeScreenEvent()
     object ClearHackerNewsProfile : HomeScreenEvent()
+    
+    // Issue Reporting Events
+    object ShowIssueReport : HomeScreenEvent()
+    object HideIssueReport : HomeScreenEvent()
+    data class UpdateIssueDescription(val description: String) : HomeScreenEvent()
+    data class ReportIssue(val description: String) : HomeScreenEvent()
 }

@@ -23,6 +23,12 @@ sealed class SettingsScreenEvent {
     object LoginToHackerNews : SettingsScreenEvent()
     object LogoutFromHackerNews : SettingsScreenEvent()
     
+    // Issue Reporting Events
+    data class ReportIssue(val description: String) : SettingsScreenEvent()
+    object ShowIssueReportDialog : SettingsScreenEvent()
+    object HideIssueReportDialog : SettingsScreenEvent()
+    data class UpdateIssueDescription(val description: String) : SettingsScreenEvent()
+
     // Common Events
     object DismissError : SettingsScreenEvent()
 }

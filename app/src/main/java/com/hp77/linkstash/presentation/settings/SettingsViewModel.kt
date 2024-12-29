@@ -7,6 +7,7 @@ import com.hp77.linkstash.domain.usecase.sync.SyncLinksToGitHubUseCase
 import com.hp77.linkstash.data.repository.GitHubSyncRepository
 import com.hp77.linkstash.data.repository.HackerNewsRepository
 import com.hp77.linkstash.domain.usecase.link.CleanupInvalidLinksUseCase
+import com.hp77.linkstash.util.CrashReporter
 import com.hp77.linkstash.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -311,6 +312,31 @@ class SettingsViewModel @Inject constructor(
                 viewModelScope.launch {
                     hackerNewsRepository.logout()
                     _state.update { it.copy(isHackerNewsAuthenticated = false) }
+                }
+            }
+            is SettingsScreenEvent.ShowIssueReportDialog -> {
+                _state.update { it.copy(showIssueReportDialog = true) }
+            }
+            is SettingsScreenEvent.HideIssueReportDialog -> {
+                _state.update { it.copy(
+                    showIssueReportDialog = false,
+                    issueDescription = ""
+                ) }
+            }
+            is SettingsScreenEvent.UpdateIssueDescription -> {
+                _state.update { it.copy(issueDescription = event.description) }
+            }
+            is SettingsScreenEvent.ReportIssue -> {
+                viewModelScope.launch {
+                    try {
+                        CrashReporter.reportIssue(event.description)
+                        _state.update { it.copy(
+                            showIssueReportDialog = false,
+                            issueDescription = ""
+                        ) }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(error = "Failed to send report: ${e.message}") }
+                    }
                 }
             }
             is SettingsScreenEvent.DismissError -> {

@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.hp77.linkstash.util.CrashReporter
 import com.hp77.linkstash.worker.ReminderWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -21,6 +22,7 @@ class LinkStashApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         Log.d("LinkStashApplication", "Initializing application")
+        CrashReporter.initialize(this)
         createNotificationChannel()
         Log.d("LinkStashApplication", "Notification channel created")
     }

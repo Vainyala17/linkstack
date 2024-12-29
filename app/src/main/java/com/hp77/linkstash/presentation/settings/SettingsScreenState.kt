@@ -25,7 +25,10 @@ data class SettingsScreenState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val syncProgress: SyncProgress = SyncProgress.None,
-    val deviceFlowStatus: String = ""
+    val deviceFlowStatus: String = "",
+    // Issue Reporting
+    val showIssueReportDialog: Boolean = false,
+    val issueDescription: String = ""
 )
 
 data class GitHubProfile(

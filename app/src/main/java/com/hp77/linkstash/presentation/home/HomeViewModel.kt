@@ -16,6 +16,7 @@ import com.hp77.linkstash.domain.usecase.sync.SyncLinksToGitHubUseCase
 import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.data.preferences.ThemeMode
 import com.hp77.linkstash.data.preferences.ThemePreferences
+import com.hp77.linkstash.util.CrashReporter
 import com.hp77.linkstash.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,6 +53,8 @@ class HomeViewModel @Inject constructor(
     private val _currentTheme = MutableStateFlow(ThemeMode.SYSTEM)
     private val _githubProfile = MutableStateFlow<GitHubProfile?>(null)
     private val _hackerNewsProfile = MutableStateFlow<HackerNewsProfile?>(null)
+    private val _showIssueReportDialog = MutableStateFlow(false)
+    private val _issueDescription = MutableStateFlow("")
 
     init {
         viewModelScope.launch {
@@ -97,7 +100,9 @@ class HomeViewModel @Inject constructor(
         val selectedFilter: LinkFilter,
         val currentTheme: ThemeMode,
         val githubProfile: GitHubProfile?,
-        val hackerNewsProfile: HackerNewsProfile?
+        val hackerNewsProfile: HackerNewsProfile?,
+        val showIssueReportDialog: Boolean,
+        val issueDescription: String
     ) {
         fun toHomeScreenState() = HomeScreenState(
             links = links,
@@ -111,7 +116,9 @@ class HomeViewModel @Inject constructor(
             selectedFilter = selectedFilter,
             currentTheme = currentTheme,
             githubProfile = githubProfile,
-            hackerNewsProfile = hackerNewsProfile
+            hackerNewsProfile = hackerNewsProfile,
+            showIssueReportDialog = showIssueReportDialog,
+            issueDescription = issueDescription
         )
     }
 
@@ -127,7 +134,9 @@ class HomeViewModel @Inject constructor(
         _selectedFilter,
         _currentTheme,
         _githubProfile,
-        _hackerNewsProfile
+        _hackerNewsProfile,
+        _showIssueReportDialog,
+        _issueDescription
     ) { args -> 
         ViewModelState(
             links = args[0] as List<Link>,
@@ -141,7 +150,9 @@ class HomeViewModel @Inject constructor(
             selectedFilter = args[8] as LinkFilter,
             currentTheme = args[9] as ThemeMode,
             githubProfile = args[10] as GitHubProfile?,
-            hackerNewsProfile = args[11] as HackerNewsProfile?
+            hackerNewsProfile = args[11] as HackerNewsProfile?,
+            showIssueReportDialog = args[12] as Boolean,
+            issueDescription = args[13] as String
         ).toHomeScreenState()
     }.stateIn(
         scope = viewModelScope,
@@ -271,6 +282,27 @@ class HomeViewModel @Inject constructor(
             }
             HomeScreenEvent.ClearHackerNewsProfile -> {
                 _hackerNewsProfile.value = null
+            }
+            HomeScreenEvent.ShowIssueReport -> {
+                _showIssueReportDialog.value = true
+            }
+            HomeScreenEvent.HideIssueReport -> {
+                _showIssueReportDialog.value = false
+                _issueDescription.value = ""
+            }
+            is HomeScreenEvent.UpdateIssueDescription -> {
+                _issueDescription.value = event.description
+            }
+            is HomeScreenEvent.ReportIssue -> {
+                viewModelScope.launch {
+                    try {
+                        CrashReporter.reportIssue(event.description)
+                        _showIssueReportDialog.value = false
+                        _issueDescription.value = ""
+                    } catch (e: Exception) {
+                        _error.value = e.message
+                    }
+                }
             }
         }
     }

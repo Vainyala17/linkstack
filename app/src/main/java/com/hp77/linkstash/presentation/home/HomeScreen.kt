@@ -24,11 +24,7 @@ import com.hp77.linkstash.data.preferences.ThemeMode
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.res.painterResource
 import com.hp77.linkstash.R
 import androidx.compose.material3.*
@@ -189,6 +185,20 @@ fun HomeScreen(
                     },
                     selected = false,
                     onClick = { showThemeDialog = true },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+
+                // Report Issue
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.BugReport, contentDescription = null) },
+                    label = { Text("Report an Issue") },
+                    selected = false,
+                    onClick = {
+                        scope.launch {
+                            drawerState.close()
+                            viewModel.onEvent(HomeScreenEvent.ShowIssueReport)
+                        }
+                    },
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
 
@@ -552,6 +562,51 @@ fun HomeScreen(
                     }
                 )
             }
+        }
+
+        // Issue Report Dialog
+        if (state.showIssueReportDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.onEvent(HomeScreenEvent.HideIssueReport) },
+                icon = { Icon(Icons.Default.BugReport, contentDescription = null) },
+                title = { Text("Report an Issue") },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Please describe the issue you're experiencing:",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        OutlinedTextField(
+                            value = state.issueDescription,
+                            onValueChange = { viewModel.onEvent(HomeScreenEvent.UpdateIssueDescription(it)) },
+                            label = { Text("Description") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            maxLines = 5
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { 
+                            viewModel.onEvent(HomeScreenEvent.ReportIssue(state.issueDescription))
+                        },
+                        enabled = state.issueDescription.isNotBlank()
+                    ) {
+                        Text("Send Report")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { viewModel.onEvent(HomeScreenEvent.HideIssueReport) }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

@@ -18,5 +18,7 @@ data class HomeScreenState(
     val selectedFilter: LinkFilter = LinkFilter.All,
     val currentTheme: ThemeMode = ThemeMode.SYSTEM,
     val githubProfile: GitHubProfile? = null,
-    val hackerNewsProfile: HackerNewsProfile? = null
+    val hackerNewsProfile: HackerNewsProfile? = null,
+    val showIssueReportDialog: Boolean = false,
+    val issueDescription: String = ""
 )
