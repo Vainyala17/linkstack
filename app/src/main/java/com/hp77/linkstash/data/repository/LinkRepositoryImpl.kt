@@ -4,6 +4,7 @@ import com.hp77.linkstash.data.local.dao.LinkDao
 import com.hp77.linkstash.data.local.entity.LinkTagCrossRef
 import com.hp77.linkstash.data.mapper.toLink
 import com.hp77.linkstash.data.mapper.toLinkEntity
+import com.hp77.linkstash.data.mapper.toLinkTagCrossRefs
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.util.Logger
@@ -23,18 +24,15 @@ class LinkRepositoryImpl @Inject constructor(
         val linkEntity = link.toLinkEntity()
         linkDao.insertLink(linkEntity)
         
-        // Then create cross references for each tag
-        link.tags.forEach { tag ->
-            try {
-                val crossRef = LinkTagCrossRef(
-                    linkId = link.id,
-                    tagId = tag.id
-                )
-                linkDao.insertLinkTagCrossRef(crossRef)
-            } catch (e: Exception) {
-                Logger.e("LinkRepository", "Error inserting tag crossRef for link ${link.id}", e)
-                e.printStackTrace()
+        // Then create cross references for tags
+        try {
+            val tagRefs = link.toLinkTagCrossRefs()
+            tagRefs.forEach { ref ->
+                linkDao.insertLinkTagCrossRef(ref)
             }
+        } catch (e: Exception) {
+            Logger.e("LinkRepository", "Error inserting tag crossRefs for link ${link.id}", e)
+            e.printStackTrace()
         }
     }
 
@@ -47,12 +45,9 @@ class LinkRepositoryImpl @Inject constructor(
         try {
             // Then update tag relationships
             linkDao.deleteAllTagsForLink(link.id)
-            link.tags.forEach { tag ->
-                val crossRef = LinkTagCrossRef(
-                    linkId = link.id,
-                    tagId = tag.id
-                )
-                linkDao.insertLinkTagCrossRef(crossRef)
+            val tagRefs = link.toLinkTagCrossRefs()
+            tagRefs.forEach { ref ->
+                linkDao.insertLinkTagCrossRef(ref)
             }
         } catch (e: Exception) {
             Logger.e("LinkRepository", "Error updating tags for link ${link.id}", e)

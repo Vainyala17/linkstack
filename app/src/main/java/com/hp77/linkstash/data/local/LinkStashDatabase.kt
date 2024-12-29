@@ -28,4 +28,18 @@ abstract class LinkStashDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "linkstash.db"
     }
+
+    @androidx.room.Transaction
+    suspend fun importLinkWithTags(link: LinkEntity, tags: List<TagEntity>, tagRefs: List<LinkTagCrossRef>) {
+        // First insert all tags
+        tags.forEach { tag ->
+            tagDao().insertTag(tag)
+        }
+        // Then insert link
+        linkDao().insertLink(link)
+        // Finally create tag relationships
+        tagRefs.forEach { ref ->
+            linkDao().insertLinkTagCrossRef(ref)
+        }
+    }
 }

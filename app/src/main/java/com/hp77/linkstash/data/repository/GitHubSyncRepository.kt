@@ -1,13 +1,17 @@
 package com.hp77.linkstash.data.repository
 
 import android.util.Base64
+import com.hp77.linkstash.data.local.LinkStashDatabase
 import com.hp77.linkstash.data.preferences.AuthPreferences
 import com.hp77.linkstash.data.remote.*
 import com.hp77.linkstash.domain.model.Link
 import com.hp77.linkstash.data.local.dao.LinkDao
 import com.hp77.linkstash.data.local.dao.GitHubProfileDao
+import com.hp77.linkstash.data.local.dao.TagDao
 import com.hp77.linkstash.data.mapper.toLinkEntity
 import com.hp77.linkstash.data.mapper.toEntity
+import com.hp77.linkstash.data.mapper.toLinkTagCrossRefs
+import com.hp77.linkstash.data.mapper.toTagEntity
 import com.hp77.linkstash.util.Logger
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +34,9 @@ class GitHubSyncRepository @Inject constructor(
     private val deviceFlowService: GitHubDeviceFlowService,
     internal val authPreferences: AuthPreferences,
     private val linkDao: LinkDao,
+    private val tagDao: TagDao,
     private val profileDao: GitHubProfileDao,
+    private val database: LinkStashDatabase,
     private val moshi: Moshi
 ) {
     companion object {
@@ -228,24 +234,72 @@ class GitHubSyncRepository @Inject constructor(
             }
         }
 
-        // Filter out links that already exist in remote
-        val (linksToSync, skippedLinks) = links.partition { localLink ->
-            val remoteLink = remoteLinks.find { it.url == localLink.url }
-            remoteLink == null || !areLinksEffectivelyEqual(localLink, remoteLink)
+        // Compare local and remote links
+        val localLinksByUrl = links.associateBy { it.url }
+        val remoteLinksToImport = mutableListOf<Link>()
+        val localLinksToSync = mutableListOf<Link>()
+        val skippedLinks = mutableListOf<Link>()
+
+        // Find completely new links from remote (don't exist locally at all)
+        remoteLinks.forEach { remoteLink ->
+            if (!localLinksByUrl.containsKey(remoteLink.url)) {
+                // Only import links that don't exist locally at all
+                Logger.d(TAG, "Found new link to import from GitHub: ${remoteLink.url}")
+                remoteLinksToImport.add(remoteLink)
+            } else {
+                Logger.d(TAG, "Skipping remote link as it already exists locally: ${remoteLink.url}")
+            }
         }
 
-        Logger.d(TAG, "Found ${linksToSync.size} links to sync and ${skippedLinks.size} duplicate links")
+        // Find local links to sync to remote
+        links.forEach { localLink ->
+            val remoteLink = remoteLinks.find { it.url == localLink.url }
+            if (remoteLink == null) {
+                // New link to sync to remote
+                Logger.d(TAG, "Found new link to sync to GitHub: ${localLink.url}")
+                localLinksToSync.add(localLink)
+            } else if (!areLinksEffectivelyEqual(localLink, remoteLink)) {
+                // Links have different content, sync local version
+                Logger.d(TAG, "Found modified link to sync to GitHub: ${localLink.url}")
+                localLinksToSync.add(localLink)
+            } else {
+                // Links are identical, skip
+                Logger.d(TAG, "Skipping duplicate link: ${localLink.url}")
+                skippedLinks.add(localLink)
+            }
+        }
+
+        // Import new/modified links from GitHub
+        if (remoteLinksToImport.isNotEmpty()) {
+            Logger.d(TAG, "Importing ${remoteLinksToImport.size} links from GitHub")
+            withContext(Dispatchers.IO) {
+                remoteLinksToImport.forEach { link ->
+                    try {
+                        // Convert entities
+                        val entity = link.toLinkEntity()
+                        val tagEntities = link.tags.map { it.toTagEntity() }
+                        val tagRefs = link.toLinkTagCrossRefs()
+
+                        // Import link with tags in a single transaction
+                        database.importLinkWithTags(entity, tagEntities, tagRefs)
+                        Logger.d(TAG, "Created link with ID: ${entity.id} and ${tagRefs.size} tags")
+                        Logger.d(TAG, "Imported link from GitHub: ${link.url} with ${link.tags.size} tags")
+                    } catch (e: Exception) {
+                        Logger.e(TAG, "Error importing link ${link.url}", e)
+                    }
+                }
+            }
+        }
 
         // Update sync status for skipped links
         withContext(Dispatchers.IO) {
             skippedLinks.forEach { link ->
-                Logger.d(TAG, "Skipping duplicate link: ${link.url}")
                 linkDao.updateSyncError(link.id, "Link already exists in GitHub")
             }
         }
 
-        if (linksToSync.isEmpty()) {
-            Logger.d(TAG, "No new links to sync")
+        if (localLinksToSync.isEmpty()) {
+            Logger.d(TAG, "No new links to sync to GitHub")
             return@runCatching
         }
 
@@ -253,9 +307,9 @@ class GitHubSyncRepository @Inject constructor(
         val filename = getBackupFilename()
         Logger.d(TAG, "Using filename: $filename")
 
-        // Convert links to sync to markdown and encode in base64
-        Logger.d(TAG, "Converting ${linksToSync.size} links to markdown")
-        val markdown = MarkdownUtils.run { linksToSync.toMarkdown() }
+        // Convert local links to sync to markdown and encode in base64
+        Logger.d(TAG, "Converting ${localLinksToSync.size} links to markdown")
+        val markdown = MarkdownUtils.run { localLinksToSync.toMarkdown() }
         val content = Base64.encodeToString(markdown.toByteArray(), Base64.NO_WRAP)
 
         // Check if file exists and get its SHA

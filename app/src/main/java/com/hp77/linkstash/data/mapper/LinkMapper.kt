@@ -1,6 +1,7 @@
 package com.hp77.linkstash.data.mapper
 
 import com.hp77.linkstash.data.local.entity.LinkEntity
+import com.hp77.linkstash.data.local.entity.LinkTagCrossRef
 import com.hp77.linkstash.data.local.entity.TagEntity
 import com.hp77.linkstash.data.local.relation.LinkWithTags
 import com.hp77.linkstash.domain.model.Link
@@ -59,6 +60,15 @@ fun Link.toLinkEntity(): LinkEntity {
         syncError = syncError,
         scrollPosition = scrollPosition
     )
+}
+
+fun Link.toLinkTagCrossRefs(): List<LinkTagCrossRef> {
+    return tags.map { tag ->
+        LinkTagCrossRef(
+            linkId = id,
+            tagId = tag.id
+        )
+    }
 }
 
 fun TagEntity.toTag() = Tag(

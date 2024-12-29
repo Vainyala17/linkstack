@@ -17,10 +17,15 @@ import com.hp77.linkstash.data.local.migrations.MIGRATION_6_7
 import com.hp77.linkstash.data.local.dao.GitHubProfileDao
 import com.hp77.linkstash.data.local.dao.HackerNewsProfileDao
 import com.hp77.linkstash.data.local.util.DatabaseMaintenanceUtil
+import com.hp77.linkstash.data.preferences.AuthPreferences
+import com.hp77.linkstash.data.remote.GitHubDeviceFlowService
+import com.hp77.linkstash.data.remote.GitHubService
+import com.hp77.linkstash.data.repository.GitHubSyncRepository
 import com.hp77.linkstash.data.repository.LinkRepositoryImpl
 import com.hp77.linkstash.data.repository.TagRepositoryImpl
 import com.hp77.linkstash.domain.repository.LinkRepository
 import com.hp77.linkstash.domain.repository.TagRepository
+import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -109,5 +114,29 @@ object DatabaseModule {
         database: LinkStashDatabase
     ): DatabaseMaintenanceUtil {
         return DatabaseMaintenanceUtil(context, database)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGitHubSyncRepository(
+        gitHubService: GitHubService,
+        deviceFlowService: GitHubDeviceFlowService,
+        authPreferences: AuthPreferences,
+        linkDao: LinkDao,
+        tagDao: TagDao,
+        profileDao: GitHubProfileDao,
+        database: LinkStashDatabase,
+        moshi: Moshi
+    ): GitHubSyncRepository {
+        return GitHubSyncRepository(
+            gitHubService,
+            deviceFlowService,
+            authPreferences,
+            linkDao,
+            tagDao,
+            profileDao,
+            database,
+            moshi
+        )
     }
 }

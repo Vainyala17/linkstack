@@ -117,4 +117,12 @@ interface LinkDao {
 
     @Query("DELETE FROM links WHERE id IS NULL OR id = ''")
     suspend fun deleteInvalidLinks(): Int
+
+    @Transaction
+    suspend fun insertLinkWithTags(link: LinkEntity, tagRefs: List<LinkTagCrossRef>) {
+        insertLink(link)
+        tagRefs.forEach { ref ->
+            insertLinkTagCrossRef(ref)
+        }
+    }
 }
