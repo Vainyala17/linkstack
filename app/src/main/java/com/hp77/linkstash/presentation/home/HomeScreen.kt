@@ -24,9 +24,16 @@ import com.hp77.linkstash.data.preferences.ThemeMode
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.res.painterResource
+import com.hp77.linkstash.R
+import androidx.compose.material3.*
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -100,12 +107,14 @@ fun HomeScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToWebView: (String) -> Unit,
+    onNavigateToAbout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     var selectedLink by remember { mutableStateOf<Link?>(null) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.error) {
         state.error?.let { error ->
@@ -114,184 +123,263 @@ fun HomeScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToAddLink) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add link"
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(state.isDrawerOpen) {
+        if (state.isDrawerOpen) {
+            drawerState.open()
+        } else {
+            drawerState.close()
+        }
+    }
+
+    LaunchedEffect(drawerState.currentValue) {
+        when (drawerState.currentValue) {
+            DrawerValue.Open -> viewModel.onEvent(HomeScreenEvent.OnDrawerOpen)
+            DrawerValue.Closed -> viewModel.onEvent(HomeScreenEvent.OnDrawerClose)
+        }
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.width(300.dp)
+            ) {
+                Spacer(Modifier.height(16.dp))
+
+                // App Logo and Name
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_logo),
+                        contentDescription = "LinkStash Logo",
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "LinkStash",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+
+                // Theme
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.DarkMode, contentDescription = null) },
+                    label = { Text("Theme") },
+                    badge = { 
+                        Text(
+                            text = when(state.currentTheme) {
+                                ThemeMode.LIGHT -> "Light"
+                                ThemeMode.DARK -> "Dark"
+                                ThemeMode.SYSTEM -> "System"
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    selected = false,
+                    onClick = { showThemeDialog = true },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+
+                // Accounts Section
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
+                    label = { Text("Accounts") },
+                    selected = false,
+                    onClick = {
+                        scope.launch {
+                            drawerState.close()
+                            onNavigateToSettings()
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+
+                // About Section
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.Info, contentDescription = null) },
+                    label = { Text("About") },
+                    selected = false,
+                    onClick = {
+                        scope.launch {
+                            drawerState.close()
+                            onNavigateToAbout()
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
                 )
             }
         }
-    ) { paddingValues ->
-        if (state.isLoading) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .padding(
-                        top = paddingValues.calculateTopPadding(),
-                        bottom = paddingValues.calculateBottomPadding()
+    ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            floatingActionButton = {
+                FloatingActionButton(onClick = onNavigateToAddLink) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add link"
                     )
-            ) {
-                SearchBar(
-                    query = state.searchQuery,
-                    onQueryChange = { viewModel.onEvent(HomeScreenEvent.OnSearchQueryChange(it)) },
-                    readOnly = true,
-                    onMenuClick = { viewModel.onEvent(HomeScreenEvent.OnMenuClick) },
-                    onProfileClick = { viewModel.onEvent(HomeScreenEvent.OnProfileClick) },
-                    onClick = onNavigateToSearch,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                FilterChips(
-                    filters = DefaultFilters(),
-                    selectedFilter = state.selectedFilter,
-                    onFilterSelect = { filter ->
-                        viewModel.onEvent(HomeScreenEvent.OnFilterSelect(filter))
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (state.links.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "No links found",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            }
+        ) { paddingValues ->
+            if (state.isLoading) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .padding(
+                            top = paddingValues.calculateTopPadding(),
+                            bottom = paddingValues.calculateBottomPadding()
                         )
-                    }
-                } else {
-                    val groupedLinks = state.links.groupBy { link ->
-                        DateUtils.formatDate(link.createdAt)
-                    }.toSortedMap { a, b ->
-                        // Custom comparator to ensure "Today" and "Yesterday" appear first
-                        when {
-                            a == "Today" -> -1
-                            b == "Today" -> 1
-                            a == "Yesterday" -> -1
-                            b == "Yesterday" -> 1
-                            else -> b.compareTo(a) // For other dates, maintain reverse chronological order
-                        }
-                    }
+                ) {
+                    SearchBar(
+                        query = state.searchQuery,
+                        onQueryChange = { viewModel.onEvent(HomeScreenEvent.OnSearchQueryChange(it)) },
+                        readOnly = true,
+                        onMenuClick = { scope.launch { drawerState.open() } },
+                        onProfileClick = { viewModel.onEvent(HomeScreenEvent.OnProfileClick) },
+                        onClick = onNavigateToSearch,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
 
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        groupedLinks.forEach { (date, linksForDate) ->
-                            item(key = date) {
-                                Text(
-                                    text = date,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    FilterChips(
+                        filters = DefaultFilters(),
+                        selectedFilter = state.selectedFilter,
+                        onFilterSelect = { filter ->
+                            viewModel.onEvent(HomeScreenEvent.OnFilterSelect(filter))
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (state.links.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No links found",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        val groupedLinks = state.links.groupBy { link ->
+                            DateUtils.formatDate(link.createdAt)
+                        }.toSortedMap { a, b ->
+                            // Custom comparator to ensure "Today" and "Yesterday" appear first
+                            when {
+                                a == "Today" -> -1
+                                b == "Today" -> 1
+                                a == "Yesterday" -> -1
+                                b == "Yesterday" -> 1
+                                else -> b.compareTo(a) // For other dates, maintain reverse chronological order
                             }
-                            
-                            items(
-                                items = linksForDate,
-                                key = { it.id }
-                            ) { link ->
-                                LinkItem(
-                                    link = link,
-                                    onLinkClick = { handleLinkClick(it, context) { link -> selectedLink = link } },
-                                    onEditClick = { link -> 
-                                        Logger.d("HomeScreen", "Navigating to edit for link: id=${link.id}, url=${link.url}")
-                                        onNavigateToEdit(link) 
-                                    },
-                                    onToggleFavorite = {
-                                        viewModel.onEvent(HomeScreenEvent.OnToggleFavorite(it))
-                                    },
-                                    onToggleArchive = {
-                                        viewModel.onEvent(HomeScreenEvent.OnToggleArchive(it))
-                                    },
-                                    onToggleStatus = {
-                                        viewModel.onEvent(HomeScreenEvent.OnToggleStatus(it))
-                                    },
-                                    onShare = { link ->
-                                        viewModel.onEvent(HomeScreenEvent.OnShowShareSheet(link))
-                                    },
-                                    onDelete = { link ->
-                                        viewModel.onEvent(HomeScreenEvent.OnDeleteLink(link))
-                                    }
-                                )
+                        }
+
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .weight(1f),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            groupedLinks.forEach { (date, linksForDate) ->
+                                item(key = date) {
+                                    Text(
+                                        text = date,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+
+                                items(
+                                    items = linksForDate,
+                                    key = { it.id }
+                                ) { link ->
+                                    LinkItem(
+                                        link = link,
+                                        onLinkClick = {
+                                            handleLinkClick(
+                                                it,
+                                                context
+                                            ) { link -> selectedLink = link }
+                                        },
+                                        onEditClick = { link ->
+                                            Logger.d(
+                                                "HomeScreen",
+                                                "Navigating to edit for link: id=${link.id}, url=${link.url}"
+                                            )
+                                            onNavigateToEdit(link)
+                                        },
+                                        onToggleFavorite = {
+                                            viewModel.onEvent(HomeScreenEvent.OnToggleFavorite(it))
+                                        },
+                                        onToggleArchive = {
+                                            viewModel.onEvent(HomeScreenEvent.OnToggleArchive(it))
+                                        },
+                                        onToggleStatus = {
+                                            viewModel.onEvent(HomeScreenEvent.OnToggleStatus(it))
+                                        },
+                                        onShare = { link ->
+                                            viewModel.onEvent(HomeScreenEvent.OnShowShareSheet(link))
+                                        },
+                                        onDelete = { link ->
+                                            viewModel.onEvent(HomeScreenEvent.OnDeleteLink(link))
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
 
-    // Show menu dialog
-    if (state.showMenu) {
+
+        // Show theme selection dialog
+    if (showThemeDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.onEvent(HomeScreenEvent.OnMenuDismiss) },
-            icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            title = { Text("Settings") },
+            onDismissRequest = { showThemeDialog = false },
+            icon = { Icon(Icons.Default.DarkMode, contentDescription = null) },
+            title = { Text("Choose Theme") },
             text = {
-                Column {
-                    // Settings Button
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                interactionSource = NoRippleInteractionSource(),
-                                indication = null
-                            ) {
-                                viewModel.onEvent(HomeScreenEvent.OnMenuDismiss)
-                                onNavigateToSettings()
-                            }
-                            .padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "App Settings",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "Theme",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     ThemeMode.values().forEach { theme ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { 
                                     viewModel.onEvent(HomeScreenEvent.OnThemeSelect(theme))
-                                    viewModel.onEvent(HomeScreenEvent.OnMenuDismiss)
+                                    showThemeDialog = false
                                 }
                                 .padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -300,7 +388,7 @@ fun HomeScreen(
                                 selected = state.currentTheme == theme,
                                 onClick = { 
                                     viewModel.onEvent(HomeScreenEvent.OnThemeSelect(theme))
-                                    viewModel.onEvent(HomeScreenEvent.OnMenuDismiss)
+                                    showThemeDialog = false
                                 }
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -316,7 +404,7 @@ fun HomeScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.onEvent(HomeScreenEvent.OnMenuDismiss) }) {
+                TextButton(onClick = { showThemeDialog = false }) {
                     Text("Close")
                 }
             }
@@ -324,145 +412,146 @@ fun HomeScreen(
     }
 
     // Show profile dialog
-    if (state.showProfile) {
-        AlertDialog(
-            onDismissRequest = { viewModel.onEvent(HomeScreenEvent.OnProfileDismiss) },
-            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-            title = { Text("Connected Accounts") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    state.githubProfile?.let { profile ->
-                        // GitHub Profile Section
-                        Column {
-                            Text(
-                                text = "GitHub",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                AsyncImage(
-                                    model = profile.avatarUrl,
-                                    contentDescription = "GitHub Avatar",
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
+        if (state.showProfile) {
+            AlertDialog(
+                onDismissRequest = { viewModel.onEvent(HomeScreenEvent.OnProfileDismiss) },
+                icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                title = { Text("Connected Accounts") },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        state.githubProfile?.let { profile ->
+                            // GitHub Profile Section
+                            Column {
+                                Text(
+                                    text = "GitHub",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = profile.name ?: profile.login,
-                                        style = MaterialTheme.typography.bodyLarge
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AsyncImage(
+                                        model = profile.avatarUrl,
+                                        contentDescription = "GitHub Avatar",
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
                                     )
-                                    profile.bio?.let { bio ->
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = bio,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            text = profile.name ?: profile.login,
+                                            style = MaterialTheme.typography.bodyLarge
                                         )
+                                        profile.bio?.let { bio ->
+                                            Text(
+                                                text = bio,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Text("${profile.publicRepos} repositories")
-                                Text("${profile.followers} followers")
-                                Text("${profile.following} following")
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Text("${profile.publicRepos} repositories")
+                                    Text("${profile.followers} followers")
+                                    Text("${profile.following} following")
+                                }
                             }
                         }
-                    }
 
-                    state.hackerNewsProfile?.let { profile ->
-                        // HackerNews Profile Section
-                        Column {
-                            Text(
-                                text = "HackerNews",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = profile.username,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            profile.about?.let { about ->
+                        state.hackerNewsProfile?.let { profile ->
+                            // HackerNews Profile Section
+                            Column {
                                 Text(
-                                    text = about,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = "HackerNews",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = profile.username,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                profile.about?.let { about ->
+                                    Text(
+                                        text = about,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("${profile.karma} karma")
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("${profile.karma} karma")
+                        }
+
+                        if (state.githubProfile == null && state.hackerNewsProfile == null) {
+                            Text(
+                                text = "No accounts connected. You can connect to GitHub and HackerNews in Settings.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
-
-                    if (state.githubProfile == null && state.hackerNewsProfile == null) {
-                        Text(
-                            text = "No accounts connected. You can connect to GitHub and HackerNews in Settings.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.onEvent(HomeScreenEvent.OnProfileDismiss) }) {
-                    Text("Close")
-                }
-            }
-        )
-    }
-
-    // Show bottom sheet if a link is selected
-    selectedLink?.let { link ->
-        OpenLinkBottomSheet(
-            link = link,
-            onDismiss = { selectedLink = null },
-            onOpenInApp = {
-                selectedLink = null
-                onNavigateToWebView(link.url)
-            },
-            onOpenInBrowser = {
-                selectedLink = null
-                context.startActivity(UrlHandler.createBrowserIntent(link.url))
-            },
-            onEdit = {
-                selectedLink = null
-                onNavigateToEdit(link)
-            },
-            onOpenHackerNews = link.hackerNewsUrl?.let { hnUrl ->
-                {
-                    selectedLink = null
-                    context.startActivity(UrlHandler.createBrowserIntent(hnUrl))
-                }
-            }
-        )
-    }
-
-    // Show share sheet if a link is selected for sharing
-    state.selectedLink?.let { selectedLink ->
-        if (state.showShareSheet) {
-            ShareBottomSheet(
-                link = selectedLink,
-                onDismiss = { viewModel.onEvent(HomeScreenEvent.OnDismissShareSheet) },
-                onShareToHackerNews = {
-                    viewModel.onEvent(HomeScreenEvent.OnShareToHackerNews(selectedLink))
                 },
-                onSyncToGitHub = {
-                    viewModel.onEvent(HomeScreenEvent.OnSyncToGitHub(selectedLink))
+                confirmButton = {
+                    TextButton(onClick = { viewModel.onEvent(HomeScreenEvent.OnProfileDismiss) }) {
+                        Text("Close")
+                    }
                 }
             )
+        }
+
+        // Show bottom sheet if a link is selected
+        selectedLink?.let { link ->
+            OpenLinkBottomSheet(
+                link = link,
+                onDismiss = { selectedLink = null },
+                onOpenInApp = {
+                    selectedLink = null
+                    onNavigateToWebView(link.url)
+                },
+                onOpenInBrowser = {
+                    selectedLink = null
+                    context.startActivity(UrlHandler.createBrowserIntent(link.url))
+                },
+                onEdit = {
+                    selectedLink = null
+                    onNavigateToEdit(link)
+                },
+                onOpenHackerNews = link.hackerNewsUrl?.let { hnUrl ->
+                    {
+                        selectedLink = null
+                        context.startActivity(UrlHandler.createBrowserIntent(hnUrl))
+                    }
+                }
+            )
+        }
+
+        // Show share sheet if a link is selected for sharing
+        state.selectedLink?.let { selectedLink ->
+            if (state.showShareSheet) {
+                ShareBottomSheet(
+                    link = selectedLink,
+                    onDismiss = { viewModel.onEvent(HomeScreenEvent.OnDismissShareSheet) },
+                    onShareToHackerNews = {
+                        viewModel.onEvent(HomeScreenEvent.OnShareToHackerNews(selectedLink))
+                    },
+                    onSyncToGitHub = {
+                        viewModel.onEvent(HomeScreenEvent.OnSyncToGitHub(selectedLink))
+                    }
+                )
+            }
         }
     }
 }

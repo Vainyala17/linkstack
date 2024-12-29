@@ -12,8 +12,8 @@ sealed class HomeScreenEvent {
     data class OnThemeSelect(val theme: ThemeMode) : HomeScreenEvent()
     data class OnDeleteLink(val link: Link) : HomeScreenEvent()
     object OnErrorDismiss : HomeScreenEvent()
-    object OnMenuClick : HomeScreenEvent()
-    object OnMenuDismiss : HomeScreenEvent()
+    object OnDrawerOpen : HomeScreenEvent()
+    object OnDrawerClose : HomeScreenEvent()
     object OnProfileClick : HomeScreenEvent()
     object OnProfileDismiss : HomeScreenEvent()
     data class OnToggleStatus(val link: Link) : HomeScreenEvent()
@@ -22,4 +22,6 @@ sealed class HomeScreenEvent {
     data class OnShareToHackerNews(val link: Link) : HomeScreenEvent()
     data class OnSyncToGitHub(val link: Link) : HomeScreenEvent()
     object NavigateToSettings : HomeScreenEvent()
+    object ClearGitHubProfile : HomeScreenEvent()
+    object ClearHackerNewsProfile : HomeScreenEvent()
 }

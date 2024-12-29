@@ -11,7 +11,7 @@ data class HomeScreenState(
     val isLoading: Boolean = false,
     val searchQuery: String = "",
     val error: String? = null,
-    val showMenu: Boolean = false,
+    val isDrawerOpen: Boolean = false,
     val showProfile: Boolean = false,
     val showShareSheet: Boolean = false,
     val selectedLink: Link? = null,

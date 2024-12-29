@@ -16,7 +16,8 @@ fun GitHubUser.toEntity() = GitHubProfileEntity(
     publicRepos = publicRepos,
     followers = followers,
     following = following,
-    createdAt = createdAt
+    createdAt = createdAt,
+    lastFetchedAt = System.currentTimeMillis()
 )
 
 fun GitHubProfileEntity.toProfile() = GitHubProfile(
@@ -35,7 +36,8 @@ fun HackerNewsUser.toEntity() = HackerNewsProfileEntity(
     username = username,
     karma = karma,
     about = about,
-    createdAt = created
+    createdAt = created,
+    lastFetchedAt = System.currentTimeMillis()
 )
 
 fun HackerNewsProfileEntity.toProfile() = HackerNewsProfile(

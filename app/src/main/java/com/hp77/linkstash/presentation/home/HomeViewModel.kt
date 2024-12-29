@@ -44,7 +44,7 @@ class HomeViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     private val _error = MutableStateFlow<String?>(null)
     private val _isLoading = MutableStateFlow(false)
-    private val _showMenu = MutableStateFlow(false)
+    private val _isDrawerOpen = MutableStateFlow(false)
     private val _showProfile = MutableStateFlow(false)
     private val _showShareSheet = MutableStateFlow(false)
     private val _selectedLink = MutableStateFlow<Link?>(null)
@@ -57,6 +57,16 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             themePreferences.themeMode.collect { theme ->
                 _currentTheme.value = theme
+            }
+        }
+
+        // Fetch profiles on init
+        viewModelScope.launch {
+            try {
+                _githubProfile.value = getGitHubProfileUseCase().getOrNull()
+                _hackerNewsProfile.value = getHackerNewsProfileUseCase().getOrNull()
+            } catch (e: Exception) {
+                _error.value = e.message
             }
         }
     }
@@ -80,7 +90,7 @@ class HomeViewModel @Inject constructor(
         val query: String,
         val error: String?,
         val isLoading: Boolean,
-        val showMenu: Boolean,
+        val isDrawerOpen: Boolean,
         val showProfile: Boolean,
         val showShareSheet: Boolean,
         val selectedLink: Link?,
@@ -94,7 +104,7 @@ class HomeViewModel @Inject constructor(
             searchQuery = query,
             error = error,
             isLoading = isLoading,
-            showMenu = showMenu,
+            isDrawerOpen = isDrawerOpen,
             showProfile = showProfile,
             showShareSheet = showShareSheet,
             selectedLink = selectedLink,
@@ -110,7 +120,7 @@ class HomeViewModel @Inject constructor(
         _searchQuery,
         _error,
         _isLoading,
-        _showMenu,
+        _isDrawerOpen,
         _showProfile,
         _showShareSheet,
         _selectedLink,
@@ -124,7 +134,7 @@ class HomeViewModel @Inject constructor(
             query = args[1] as String,
             error = args[2] as String?,
             isLoading = args[3] as Boolean,
-            showMenu = args[4] as Boolean,
+            isDrawerOpen = args[4] as Boolean,
             showProfile = args[5] as Boolean,
             showShareSheet = args[6] as Boolean,
             selectedLink = args[7] as Link?,
@@ -202,27 +212,20 @@ class HomeViewModel @Inject constructor(
             HomeScreenEvent.OnErrorDismiss -> {
                 _error.value = null
             }
-            HomeScreenEvent.OnMenuClick -> {
-                _showMenu.value = true
+            HomeScreenEvent.OnDrawerOpen -> {
+                _isDrawerOpen.value = true
             }
-            HomeScreenEvent.OnMenuDismiss -> {
-                _showMenu.value = false
+            HomeScreenEvent.OnDrawerClose -> {
+                _isDrawerOpen.value = false
             }
             HomeScreenEvent.OnProfileClick -> {
                 _showProfile.value = true
-                viewModelScope.launch {
-                    try {
-                        _githubProfile.value = getGitHubProfileUseCase().getOrNull()
-                        _hackerNewsProfile.value = getHackerNewsProfileUseCase().getOrNull()
-                    } catch (e: Exception) {
-                        _error.value = e.message
-                    }
-                }
+                // Use cached profile data, no need to fetch again
             }
             HomeScreenEvent.OnProfileDismiss -> {
                 _showProfile.value = false
-                _githubProfile.value = null
-                _hackerNewsProfile.value = null
+                // Keep the profile data cached in ViewModel state
+                // Only clear on logout or when cache expires
             }
             is HomeScreenEvent.OnShowShareSheet -> {
                 _selectedLink.value = event.link
@@ -262,6 +265,12 @@ class HomeViewModel @Inject constructor(
             }
             HomeScreenEvent.NavigateToSettings -> {
                 // Navigation is handled by the UI
+            }
+            HomeScreenEvent.ClearGitHubProfile -> {
+                _githubProfile.value = null
+            }
+            HomeScreenEvent.ClearHackerNewsProfile -> {
+                _hackerNewsProfile.value = null
             }
         }
     }

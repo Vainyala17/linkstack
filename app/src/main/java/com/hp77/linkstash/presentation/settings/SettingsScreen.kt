@@ -16,6 +16,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.hp77.linkstash.presentation.home.HomeScreenEvent
+import com.hp77.linkstash.presentation.home.HomeViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -26,7 +28,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit,
     onNavigateToAbout: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel()
+    viewModel: SettingsViewModel = hiltViewModel(),
+    homeViewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -491,6 +494,20 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+
+    // Clear GitHub profile when disconnected
+    LaunchedEffect(state.isGitHubAuthenticated) {
+        if (!state.isGitHubAuthenticated) {
+            homeViewModel.onEvent(HomeScreenEvent.ClearGitHubProfile)
+        }
+    }
+
+    // Clear HackerNews profile when logged out
+    LaunchedEffect(state.isHackerNewsAuthenticated) {
+        if (!state.isHackerNewsAuthenticated) {
+            homeViewModel.onEvent(HomeScreenEvent.ClearHackerNewsProfile)
+        }
     }
 
     // Show error in snackbar if present

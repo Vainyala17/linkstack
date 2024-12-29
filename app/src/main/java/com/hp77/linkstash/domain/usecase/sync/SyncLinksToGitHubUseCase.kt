@@ -20,14 +20,13 @@ class SyncLinksToGitHubUseCase @Inject constructor(
     suspend operator fun invoke(): Result<SyncResult> = runCatching {
         Logger.d(TAG, "Starting GitHub sync process")
         
-        // Check authentication
-        Logger.d(TAG, "Checking GitHub authentication")
-        if (!gitHubSyncRepository.isAuthenticated()) {
+        // Check token presence
+        val token = gitHubSyncRepository.authPreferences.githubToken.first()
+        if (token == null) {
             val error = "Not authenticated with GitHub"
             Logger.e(TAG, error)
             throw IllegalStateException(error)
         }
-        Logger.d(TAG, "GitHub authentication verified")
 
         // Get all links
         Logger.d(TAG, "Fetching all links")

@@ -37,13 +37,13 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             Logger.d(TAG, "Initializing ViewModel")
-            // Initialize GitHub state
-            val isAuthenticated = gitHubSyncRepository.isAuthenticated()
+            // Initialize GitHub state based on token presence
+            val hasToken = authPreferences.githubToken.first() != null
             val repoName = authPreferences.githubRepoName.first() ?: ""
             val repoOwner = authPreferences.githubRepoOwner.first() ?: ""
-            Logger.d(TAG, "GitHub authenticated: $isAuthenticated")
+            Logger.d(TAG, "GitHub token present: $hasToken")
             _state.update { it.copy(
-                isGitHubAuthenticated = isAuthenticated,
+                isGitHubAuthenticated = hasToken,
                 githubRepoName = repoName,
                 githubRepoOwner = repoOwner,
                 tempGithubRepoName = repoName,
@@ -139,10 +139,11 @@ class SettingsViewModel @Inject constructor(
                             ).onSuccess { token ->
                                 Logger.d(TAG, "Successfully got token")
                                 _state.update { it.copy(
-                                    isGitHubAuthenticated = true,
                                     showGitHubDeviceFlowDialog = false,
                                     isPollingForGitHubToken = false,
-                                    error = null
+                                    error = null,
+                                    // Just update based on token presence
+                                    isGitHubAuthenticated = true
                                 ) }
                             }.onFailure { error ->
                                 when {

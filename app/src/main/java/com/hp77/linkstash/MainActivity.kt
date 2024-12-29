@@ -98,6 +98,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToWebView = { url ->
                                     navController.navigate(Screen.WebView.createRoute(url))
+                                },
+                                onNavigateToAbout = {
+                                    navController.navigate(Screen.About.route)
                                 }
                             )
                         }

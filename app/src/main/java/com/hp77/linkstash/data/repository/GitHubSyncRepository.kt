@@ -28,7 +28,7 @@ private const val TAG = "GitHubSyncRepository"
 class GitHubSyncRepository @Inject constructor(
     private val gitHubService: GitHubService,
     private val deviceFlowService: GitHubDeviceFlowService,
-    private val authPreferences: AuthPreferences,
+    internal val authPreferences: AuthPreferences,
     private val linkDao: LinkDao,
     private val profileDao: GitHubProfileDao,
     private val moshi: Moshi
@@ -117,96 +117,6 @@ class GitHubSyncRepository @Inject constructor(
         }
     }
 
-    suspend fun pollForToken(deviceCode: String, interval: Int): Result<String> = runCatching {
-        Logger.d(TAG, "Starting to poll for token")
-        var token: String? = null
-        val startTime = System.currentTimeMillis()
-        val timeout = 10 * 60 * 1000L // 10 minutes timeout
-        
-        while (token == null) {
-            if (System.currentTimeMillis() - startTime > timeout) {
-                throw Exception("Device flow authentication timed out after 10 minutes. Please try again.")
-            }
-            
-            try {
-                val requestStartTime = System.currentTimeMillis()
-                val response = deviceFlowService.pollForToken(
-                    clientId = GitHubConfig.CLIENT_ID,
-                    deviceCode = deviceCode
-                )
-                val requestEndTime = System.currentTimeMillis()
-                Logger.d(TAG, "Token polling request took ${requestEndTime - requestStartTime}ms")
-
-                // Log progress towards timeout
-                val elapsedTime = System.currentTimeMillis() - startTime
-                val remainingTime = (timeout - elapsedTime) / 1000 // Convert to seconds
-                Logger.d(TAG, "Device flow time remaining: ${remainingTime}s")
-
-                when {
-                    response.isSuccessful -> {
-                        val tokenResponse = response.body()
-                        if (tokenResponse == null) {
-                            Logger.e(TAG, "Received successful response but body is null")
-                            val errorBody = response.errorBody()?.string()
-                            Logger.d(TAG, "Error body: $errorBody")
-                            throw Exception("Failed to parse token response")
-                        }
-                        Logger.d(TAG, """Token response:
-                            |Access token: ${if (tokenResponse.accessToken != null) "Present" else "Null"}
-                            |Token type: ${tokenResponse.tokenType}
-                            |Scope: ${tokenResponse.scope}
-                            |Error: ${tokenResponse.error}""".trimMargin())
-
-                        if (tokenResponse.accessToken != null) {
-                            Logger.d(TAG, "Successfully received access token")
-                            authPreferences.updateGitHubToken(tokenResponse.accessToken)
-                            token = tokenResponse.accessToken
-                            break
-                        }
-
-                        // No access token, check error
-                        when (tokenResponse.error) {
-                            "authorization_pending" -> {
-                                Logger.d(TAG, "Authorization pending, waiting ${interval}s")
-                                delay(interval * 1000L)
-                            }
-                            "slow_down" -> {
-                                Logger.d(TAG, "Polling too fast, increasing interval")
-                                delay((interval + 5) * 1000L)
-                            }
-                            "expired_token" -> {
-                                val error = "Device code has expired. Please try again."
-                                Logger.e(TAG, error)
-                                throw Exception(error)
-                            }
-                            null -> {
-                                val error = "Unexpected response: no access token or error"
-                                Logger.e(TAG, error)
-                                throw Exception(error)
-                            }
-                            else -> {
-                                val error = "Token polling failed: ${tokenResponse.error}"
-                                Logger.e(TAG, error)
-                                throw Exception(error)
-                            }
-                        }
-                    }
-                    else -> {
-                        val error = handleErrorResponse(response, "Failed to poll for token")
-                        Logger.e(TAG, error)
-                        throw Exception(error)
-                    }
-                }
-            } catch (e: Exception) {
-                when (e) {
-                    is java.net.UnknownHostException -> throw Exception("No internet connection. Please check your network and try again.")
-                    is java.net.SocketTimeoutException -> throw Exception("Request timed out. GitHub servers might be slow, please try again.")
-                    else -> throw e
-                }
-            }
-        }
-        token ?: throw Exception("Token should not be null at this point")
-    }
 
     suspend fun syncLinks(links: List<Link>): Result<Unit> = runCatching {
         Logger.d(TAG, "Starting sync for ${links.size} links")
@@ -215,7 +125,7 @@ class GitHubSyncRepository @Inject constructor(
             val repoName = authPreferences.githubRepoName.first() ?: DEFAULT_REPO_NAME
             val authHeader = "token $token"
 
-            // Get user info
+            // Get user info to get the correct owner
             Logger.d(TAG, "Getting user info")
             val userResponse = gitHubService.getCurrentUser(authHeader)
             if (!userResponse.isSuccessful) {
@@ -224,35 +134,50 @@ class GitHubSyncRepository @Inject constructor(
                 throw Exception(error)
             }
             val user = userResponse.body()!!
-            Logger.d(TAG, "Got user info for: ${user.login}")
             
-            // Use configured repo owner or fall back to authenticated user
-            val repoOwner = authPreferences.githubRepoOwner.first() ?: user.login
-
-            // Check if repo exists
-            Logger.d(TAG, "Checking for repository: $repoName")
-            val repoResponse = gitHubService.getRepository(authHeader, repoOwner, repoName)
-            if (repoResponse.isSuccessful) {
-                repoResponse.body()!!.also {
-                    Logger.d(TAG, "Found existing repository: ${it.fullName}")
+            // First try to get repo from configured owner
+            var currentRepoOwner = authPreferences.githubRepoOwner.first()
+            if (currentRepoOwner != null) {
+                Logger.d(TAG, "Checking for repository under configured owner: $currentRepoOwner")
+                val repoResponse = gitHubService.getRepository(authHeader, currentRepoOwner, repoName)
+                if (repoResponse.isSuccessful) {
+                    repoResponse.body()!!.also {
+                        Logger.d(TAG, "Found existing repository: ${it.fullName}")
+                    }
+                } else {
+                    // If not found under configured owner, try user's account
+                    currentRepoOwner = user.login
                 }
             } else {
-                // Repository doesn't exist, create it
-                Logger.d(TAG, "Repository not found, creating new one")
-                val createRepoResponse = gitHubService.createRepository(
-                    authHeader,
-                    CreateRepoRequest(
-                        name = repoName,
-                        description = REPO_DESCRIPTION
+                currentRepoOwner = user.login
+            }
+
+            // If we're using user's account, check/create repo there
+            if (currentRepoOwner == user.login) {
+                Logger.d(TAG, "Checking for repository under user account: ${user.login}")
+                val repoResponse = gitHubService.getRepository(authHeader, user.login, repoName)
+                if (!repoResponse.isSuccessful) {
+                    // Repository doesn't exist in user's account, create it
+                    Logger.d(TAG, "Repository not found, creating new one in ${user.login}'s account")
+                    val createRepoResponse = gitHubService.createRepository(
+                        authHeader,
+                        CreateRepoRequest(
+                            name = repoName,
+                            description = REPO_DESCRIPTION
+                        )
                     )
-                )
-                if (!createRepoResponse.isSuccessful) {
-                    val error = handleErrorResponse(createRepoResponse, "Failed to create repository")
-                    Logger.e(TAG, error)
-                    throw Exception(error)
-                }
-                createRepoResponse.body()!!.also {
-                    Logger.d(TAG, "Created new repository: ${it.fullName}")
+                    if (!createRepoResponse.isSuccessful) {
+                        val error = handleErrorResponse(createRepoResponse, "Failed to create repository")
+                        Logger.e(TAG, error)
+                        throw Exception(error)
+                    }
+                    createRepoResponse.body()!!.also {
+                        Logger.d(TAG, "Created new repository: ${it.fullName}")
+                    }
+                } else {
+                    repoResponse.body()!!.also {
+                        Logger.d(TAG, "Found existing repository: ${it.fullName}")
+                    }
                 }
             }
 
@@ -260,7 +185,7 @@ class GitHubSyncRepository @Inject constructor(
             Logger.d(TAG, "Listing repository contents")
             val contentsResponse = gitHubService.listDirectoryContents(
                 authHeader,
-                repoOwner,
+                currentRepoOwner,
                 repoName,
                 ""  // Empty path to list root directory
             )
@@ -282,7 +207,7 @@ class GitHubSyncRepository @Inject constructor(
                         try {
                             val fileResponse = gitHubService.getFileContent(
                                 authHeader,
-                                repoOwner,
+                                currentRepoOwner,
                                 repoName,
                                 file.path
                             )
@@ -329,7 +254,7 @@ class GitHubSyncRepository @Inject constructor(
             Logger.d(TAG, "Checking for existing file: $filename")
             val fileResponse = gitHubService.getFileContent(
                 authHeader,
-                repoOwner,
+                currentRepoOwner,
                 repoName,
                 filename
             )
@@ -360,7 +285,7 @@ class GitHubSyncRepository @Inject constructor(
             Logger.d(TAG, "Updating file with ${if (sha != null) "existing SHA" else "no SHA (new file)"}")
             val updateResponse = gitHubService.updateFile(
                 authHeader,
-                repoOwner,
+                currentRepoOwner,
                 repoName,
                 filename,
                 UpdateFileRequest(
@@ -399,13 +324,18 @@ class GitHubSyncRepository @Inject constructor(
 
     suspend fun getCurrentUser(): Result<GitHubUser> = runCatching {
         val token = authPreferences.githubToken.first() ?: throw IllegalStateException("GitHub token not found")
-        
-        // Check if we have a fresh cached profile
+
+        // For device flow, we don't need to fetch profile
+        if (isPollingForToken) {
+            throw IllegalStateException("GitHub token not found")
+        }
+
+        // Try to get profile from cache first
         val cachedProfile = profileDao.getProfileIfFresh(
-            login = token,
+            login = "github", // Use a constant key since we only store one profile at a time
             maxAge = PROFILE_CACHE_DURATION
         )
-        
+
         if (cachedProfile != null) {
             Logger.d(TAG, "Using cached GitHub profile")
             return@runCatching GitHubUser(
@@ -422,8 +352,8 @@ class GitHubSyncRepository @Inject constructor(
             )
         }
 
-        // Fetch from network
-        Logger.d(TAG, "Fetching GitHub profile from network")
+        // If no valid cache, fetch from network
+        Logger.d(TAG, "No valid cache found, fetching from network")
         val response = gitHubService.getCurrentUser("token $token")
         if (!response.isSuccessful) {
             throw Exception(handleErrorResponse(response, "Failed to get user info"))
@@ -431,15 +361,122 @@ class GitHubSyncRepository @Inject constructor(
         
         val user = response.body() ?: throw Exception("Empty response body")
         
-        // Update cache
-        profileDao.insertProfile(user.toEntity())
+        // Update cache with the constant key and timestamp
+        profileDao.insertProfile(user.toEntity().copy(
+            login = "github",
+            lastFetchedAt = System.currentTimeMillis()
+        ))
         Logger.d(TAG, "Updated GitHub profile cache")
         
         user
     }
 
+    var isPollingForToken = false
+        private set
+
+    suspend fun pollForToken(deviceCode: String, interval: Int): Result<String> = runCatching {
+        isPollingForToken = true
+        try {
+            Logger.d(TAG, "Starting to poll for token")
+            var token: String? = null
+            val startTime = System.currentTimeMillis()
+            val timeout = 10 * 60 * 1000L // 10 minutes timeout
+            
+            while (token == null) {
+                if (System.currentTimeMillis() - startTime > timeout) {
+                    throw Exception("Device flow authentication timed out after 10 minutes. Please try again.")
+                }
+                
+                try {
+                    val requestStartTime = System.currentTimeMillis()
+                    val response = deviceFlowService.pollForToken(
+                        clientId = GitHubConfig.CLIENT_ID,
+                        deviceCode = deviceCode
+                    )
+                    val requestEndTime = System.currentTimeMillis()
+                    Logger.d(TAG, "Token polling request took ${requestEndTime - requestStartTime}ms")
+
+                    // Log progress towards timeout
+                    val elapsedTime = System.currentTimeMillis() - startTime
+                    val remainingTime = (timeout - elapsedTime) / 1000 // Convert to seconds
+                    Logger.d(TAG, "Device flow time remaining: ${remainingTime}s")
+
+                    when {
+                        response.isSuccessful -> {
+                            val tokenResponse = response.body()
+                            if (tokenResponse == null) {
+                                Logger.e(TAG, "Received successful response but body is null")
+                                val errorBody = response.errorBody()?.string()
+                                Logger.d(TAG, "Error body: $errorBody")
+                                throw Exception("Failed to parse token response")
+                            }
+                            Logger.d(TAG, """Token response:
+                                |Access token: ${if (tokenResponse.accessToken != null) "Present" else "Null"}
+                                |Token type: ${tokenResponse.tokenType}
+                                |Scope: ${tokenResponse.scope}
+                                |Error: ${tokenResponse.error}""".trimMargin())
+
+                            if (tokenResponse.accessToken != null) {
+                                Logger.d(TAG, "Successfully received access token")
+                                authPreferences.updateGitHubToken(tokenResponse.accessToken)
+                                token = tokenResponse.accessToken
+                                break
+                            }
+
+                            // No access token, check error
+                            when (tokenResponse.error) {
+                                "authorization_pending" -> {
+                                    Logger.d(TAG, "Authorization pending, waiting ${interval}s")
+                                    delay(interval * 1000L)
+                                }
+                                "slow_down" -> {
+                                    Logger.d(TAG, "Polling too fast, increasing interval")
+                                    delay((interval + 5) * 1000L)
+                                }
+                                "expired_token" -> {
+                                    val error = "Device code has expired. Please try again."
+                                    Logger.e(TAG, error)
+                                    throw Exception(error)
+                                }
+                                null -> {
+                                    val error = "Unexpected response: no access token or error"
+                                    Logger.e(TAG, error)
+                                    throw Exception(error)
+                                }
+                                else -> {
+                                    val error = "Token polling failed: ${tokenResponse.error}"
+                                    Logger.e(TAG, error)
+                                    throw Exception(error)
+                                }
+                            }
+                        }
+                        else -> {
+                            val error = handleErrorResponse(response, "Failed to poll for token")
+                            Logger.e(TAG, error)
+                            throw Exception(error)
+                        }
+                    }
+                } catch (e: Exception) {
+                    when (e) {
+                        is java.net.UnknownHostException -> throw Exception("No internet connection. Please check your network and try again.")
+                        is java.net.SocketTimeoutException -> throw Exception("Request timed out. GitHub servers might be slow, please try again.")
+                        else -> throw e
+                    }
+                }
+            }
+            token ?: throw Exception("Token should not be null at this point")
+        } finally {
+            isPollingForToken = false
+        }
+    }
+
     suspend fun isAuthenticated(): Boolean {
         return try {
+            // During device flow, just check token presence
+            if (isPollingForToken) {
+                return authPreferences.githubToken.first() != null
+            }
+            
             val token = authPreferences.githubToken.first()
             if (token == null) {
                 false
@@ -456,5 +493,7 @@ class GitHubSyncRepository @Inject constructor(
     suspend fun logout() {
         Logger.d(TAG, "Logging out")
         authPreferences.updateGitHubToken(null)
+        // Clear cached profile
+        profileDao.deleteProfile("github")
     }
 }
