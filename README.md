@@ -1,10 +1,10 @@
-# LinkStash
+# LinkStack
 
 <p align="center">
-  <img src=".github/assets/app_icon.png" alt="LinkStash Icon" width="120" height="120">
+  <img src=".github/assets/app_icon.png" alt="LinkStack Icon" width="120" height="120">
 </p>
 
-LinkStash is a modern Android application for efficiently managing and organizing your links. Built with Clean Architecture and modern Android development practices, it offers a robust solution for saving, categorizing, and accessing your important links.
+LinkStack is a modern Android application for efficiently managing and organizing your links. Built with Clean Architecture and modern Android development practices, it offers a robust solution for saving, categorizing, and accessing your important links.
 
 ## Project Status
 
@@ -74,7 +74,7 @@ The app supports various link types with specialized handling:
 
 ## Reminder System
 
-LinkStash includes a sophisticated reminder system that:
+Linkstack includes a sophisticated reminder system that:
 - Allows setting custom reminders for saved links
 - Supports different reminder frequencies
 - Uses WorkManager for reliable background processing
@@ -94,7 +94,7 @@ The project includes comprehensive testing:
 The app follows Clean Architecture principles with a clear separation of concerns:
 
 ```
-com.hp77.linkstash/
+com.hp77.Linkstack/
 ├── data/                 # Data Layer
 │   ├── local/           # Room Database
 │   ├── remote/          # Network Services
@@ -162,7 +162,7 @@ The app integrates with HackerNews API to:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/LinkStash.git
+git clone https://github.com/yourusername/Linkstack.git
 ```
 
 2. Open the project in Android Studio
@@ -234,7 +234,7 @@ For Play Store distribution:
 
 ## GitHub Sync
 
-LinkStash provides seamless GitHub integration:
+Linkstack provides seamless GitHub integration:
 - Backup links to a GitHub repository
 - Sync across multiple devices
 - Version control for your link collection
