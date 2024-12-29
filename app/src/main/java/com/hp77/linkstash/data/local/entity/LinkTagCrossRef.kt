@@ -2,6 +2,7 @@ package com.hp77.linkstash.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 
 @Entity(
     tableName = "link_tag_cross_ref",
@@ -19,6 +20,10 @@ import androidx.room.ForeignKey
             childColumns = ["tagId"],
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index("linkId"),
+        Index("tagId")
     ]
 )
 data class LinkTagCrossRef(

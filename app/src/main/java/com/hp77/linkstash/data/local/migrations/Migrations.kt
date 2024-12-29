@@ -4,6 +4,14 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.UUID
 
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Create indices for foreign key columns in link_tag_cross_ref
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_link_tag_cross_ref_linkId` ON `link_tag_cross_ref` (`linkId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_link_tag_cross_ref_tagId` ON `link_tag_cross_ref` (`tagId`)")
+    }
+}
+
 val MIGRATION_4_5 = object : Migration(4, 5) {
     override fun migrate(db: SupportSQLiteDatabase) {
         // Create GitHub profiles table

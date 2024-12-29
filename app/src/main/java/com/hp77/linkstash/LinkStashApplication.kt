@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.hp77.linkstash.data.local.util.DatabaseMaintenanceUtil
 import com.hp77.linkstash.util.CrashReporter
 import com.hp77.linkstash.worker.ReminderWorker
 import dagger.hilt.android.HiltAndroidApp
@@ -19,12 +20,19 @@ class LinkStashApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var databaseMaintenanceUtil: DatabaseMaintenanceUtil
+
     override fun onCreate() {
         super.onCreate()
         Log.d("LinkStashApplication", "Initializing application")
         CrashReporter.initialize(this)
         createNotificationChannel()
         Log.d("LinkStashApplication", "Notification channel created")
+        
+        // Initialize database maintenance
+        databaseMaintenanceUtil.scheduleMaintenance()
+        Log.d("LinkStashApplication", "Database maintenance scheduled")
     }
 
     // WorkManager configuration is now handled in ReminderModule
