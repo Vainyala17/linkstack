@@ -225,19 +225,36 @@ class GitHubSyncRepository @Inject constructor(
                         }
                     }
 
-                    // Get all local URLs
-                    val localUrls = links.map { it.url }.toSet()
+                    // Get all local links for comparison
+                    val localLinks = links.associateBy { it.url }
                     
-                    // Find new links that don't exist locally
-                    val newLinks = remoteLinks.filter { remoteLink -> 
-                        remoteLink.url !in localUrls 
+                    // Find links to import or update
+                    val linksToImport = mutableListOf<Link>()
+                    
+                    remoteLinks.forEach { remoteLink ->
+                        val localLink = localLinks[remoteLink.url]
+                        
+                        if (localLink == null) {
+                            // New link, import it
+                            Logger.d(TAG, "Found new link to import: ${remoteLink.url}")
+                            linksToImport.add(remoteLink)
+                        } else if (!areLinksEffectivelyEqual(remoteLink, localLink)) {
+                            // Links have same URL but different content, import as new
+                            Logger.d(TAG, "Found modified link to import: ${remoteLink.url}")
+                            Logger.d(TAG, "Local link: title='${localLink.title}', desc='${localLink.description}', type=${localLink.type}")
+                            Logger.d(TAG, "Remote link: title='${remoteLink.title}', desc='${remoteLink.description}', type=${remoteLink.type}")
+                            linksToImport.add(remoteLink)
+                        } else {
+                            Logger.d(TAG, "Skipping duplicate link: ${remoteLink.url}")
+                        }
                     }
-                    Logger.d(TAG, "Found ${newLinks.size} new links to import")
 
-                    // Import new links
-                    if (newLinks.isNotEmpty()) {
-                        Logger.d(TAG, "Importing new links")
-                        newLinks.forEach { link ->
+                    Logger.d(TAG, "Found ${linksToImport.size} links to import")
+
+                    // Import links
+                    if (linksToImport.isNotEmpty()) {
+                        Logger.d(TAG, "Importing links")
+                        linksToImport.forEach { link ->
                             val entity = link.toLinkEntity()
                             linkDao.insertLink(entity)
                             Logger.d(TAG, "Imported link: ${link.url}")
@@ -271,8 +288,30 @@ class GitHubSyncRepository @Inject constructor(
                 emptyList()
             }
 
-            // Merge existing and new links, removing duplicates by URL
-            val mergedLinks = (existingLinks + links).distinctBy { it.url }
+            // Merge links with duplicate detection
+            val mergedLinks = mutableListOf<Link>()
+            val seenUrls = mutableSetOf<String>()
+
+            // Add existing links first
+            existingLinks.forEach { link ->
+                if (link.url !in seenUrls) {
+                    mergedLinks.add(link)
+                    seenUrls.add(link.url)
+                }
+            }
+
+            // Add new links, checking for meaningful differences
+            links.forEach { link ->
+                val existingLink = mergedLinks.find { it.url == link.url }
+                if (existingLink == null) {
+                    mergedLinks.add(link)
+                    seenUrls.add(link.url)
+                } else if (!areLinksEffectivelyEqual(link, existingLink)) {
+                    // Replace existing link if there are meaningful differences
+                    mergedLinks[mergedLinks.indexOf(existingLink)] = link
+                }
+            }
+
             Logger.d(TAG, "Merged links: ${mergedLinks.size} (${existingLinks.size} existing + ${links.size} new)")
 
             // Convert merged links to markdown and encode in base64
@@ -495,5 +534,24 @@ class GitHubSyncRepository @Inject constructor(
         authPreferences.updateGitHubToken(null)
         // Clear cached profile
         profileDao.deleteProfile("github")
+    }
+
+    /**
+     * Compares two links to determine if they are effectively equal by comparing relevant fields.
+     * This helps prevent duplicate imports of links that only differ in non-essential ways.
+     *
+     * @param link1 First link to compare
+     * @param link2 Second link to compare
+     * @return true if the links are effectively equal, false if they have meaningful differences
+     */
+    private fun areLinksEffectivelyEqual(link1: Link, link2: Link): Boolean {
+        // URL is already checked before this function is called
+        return link1.title == link2.title &&
+               link1.description == link2.description &&
+               link1.type == link2.type &&
+               link1.notes == link2.notes &&
+               link1.isArchived == link2.isArchived &&
+               link1.isFavorite == link2.isFavorite &&
+               link1.isCompleted == link2.isCompleted
     }
 }

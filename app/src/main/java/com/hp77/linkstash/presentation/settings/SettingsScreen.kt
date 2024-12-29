@@ -365,37 +365,6 @@ fun SettingsScreen(
                     }
                 }
 
-                // Support Section
-                Card {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(Icons.Default.BugReport, contentDescription = "Support")
-                            Text(
-                                text = "Support",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                        Text(
-                            text = "Report issues or provide feedback",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Button(
-                            onClick = { viewModel.onEvent(SettingsScreenEvent.ShowIssueReportDialog) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Report an Issue")
-                        }
-                    }
-                }
-
                 // About Section
                 Card {
                     Column(
@@ -577,56 +546,6 @@ fun SettingsScreen(
             if (!state.isHackerNewsAuthenticated) {
                 homeViewModel.onEvent(HomeScreenEvent.ClearHackerNewsProfile)
             }
-        }
-
-        // Issue Report Dialog
-        if (state.showIssueReportDialog) {
-            AlertDialog(
-                onDismissRequest = { viewModel.onEvent(SettingsScreenEvent.HideIssueReportDialog) },
-                title = { Text("Report an Issue") },
-                text = {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Please describe the issue you're experiencing:",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        OutlinedTextField(
-                            value = state.issueDescription,
-                            onValueChange = {
-                                viewModel.onEvent(
-                                    SettingsScreenEvent.UpdateIssueDescription(
-                                        it
-                                    )
-                                )
-                            },
-                            label = { Text("Description") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp),
-                            maxLines = 5
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.onEvent(SettingsScreenEvent.ReportIssue(state.issueDescription))
-                        },
-                        enabled = state.issueDescription.isNotBlank()
-                    ) {
-                        Text("Send Report")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { viewModel.onEvent(SettingsScreenEvent.HideIssueReportDialog) }
-                    ) {
-                        Text("Cancel")
-                    }
-                }
-            )
         }
 
         // Show error in snackbar if present

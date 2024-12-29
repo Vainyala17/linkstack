@@ -111,7 +111,7 @@ fun SearchBar(
                                     model = githubProfile.avatarUrl,
                                     contentDescription = "GitHub Profile",
                                     modifier = Modifier
-                                        .size(24.dp)
+                                        .size(32.dp)
                                         .clip(CircleShape),
                                     contentScale = ContentScale.Crop
                                 )

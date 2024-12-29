@@ -18,6 +18,7 @@ import com.hp77.linkstash.data.preferences.ThemeMode
 import com.hp77.linkstash.data.preferences.ThemePreferences
 import com.hp77.linkstash.util.CrashReporter
 import com.hp77.linkstash.util.Logger
+import com.hp77.linkstash.util.UIAnomalyDetector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -168,6 +169,14 @@ class HomeViewModel @Inject constructor(
             is HomeScreenEvent.OnFilterSelect -> {
                 _selectedFilter.value = event.filter
             }
+            HomeScreenEvent.OnDrawerOpen -> {
+                UIAnomalyDetector.startTransition("drawer_open")
+                _isDrawerOpen.value = true
+            }
+            HomeScreenEvent.OnDrawerClose -> {
+                UIAnomalyDetector.endTransition("drawer_open")
+                _isDrawerOpen.value = false
+            }
             is HomeScreenEvent.OnToggleFavorite -> {
                 viewModelScope.launch {
                     try {
@@ -222,12 +231,6 @@ class HomeViewModel @Inject constructor(
             }
             HomeScreenEvent.OnErrorDismiss -> {
                 _error.value = null
-            }
-            HomeScreenEvent.OnDrawerOpen -> {
-                _isDrawerOpen.value = true
-            }
-            HomeScreenEvent.OnDrawerClose -> {
-                _isDrawerOpen.value = false
             }
             HomeScreenEvent.OnProfileClick -> {
                 _showProfile.value = true

@@ -29,6 +29,7 @@ import com.hp77.linkstash.presentation.settings.SettingsScreen
 import java.net.URLDecoder
 import com.hp77.linkstash.data.preferences.ThemePreferences
 import com.hp77.linkstash.data.preferences.ThemeMode
+import com.hp77.linkstash.presentation.components.ErrorBoundary
 import com.hp77.linkstash.ui.theme.LinkStashTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -63,11 +64,12 @@ class MainActivity : ComponentActivity() {
                     ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 }
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    val navController = rememberNavController()
+                ErrorBoundary {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        val navController = rememberNavController()
 
                     // Handle deep link from notification
                     LaunchedEffect(intent?.data) {
@@ -189,6 +191,7 @@ class MainActivity : ComponentActivity() {
                                     navController.popBackStack()
                                 }
                             )
+                        }
                         }
                     }
                 }

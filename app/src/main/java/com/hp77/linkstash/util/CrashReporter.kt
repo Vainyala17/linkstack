@@ -15,11 +15,47 @@ object CrashReporter : Thread.UncaughtExceptionHandler {
     private var contextRef: WeakReference<Context>? = null
     private const val DEVELOPER_EMAIL = "hp77codeforgood@gmail.com"
     private val dateFormat = SimpleDateFormat("MMM d, yyyy HH:mm:ss", Locale.getDefault())
+    private const val ANOMALY_THRESHOLD = 5000L // 5 seconds
 
     fun initialize(context: Context) {
         contextRef = WeakReference(context)
         defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(this)
+        
+        // Observe UI anomalies
+        UIAnomalyDetector.anomalyDetected.value?.let { anomaly ->
+            if (anomaly.duration > ANOMALY_THRESHOLD) {
+                reportAnomaly(anomaly)
+            }
+        }
+    }
+
+    private fun reportAnomaly(anomaly: UIAnomalyDetector.UIAnomaly) {
+        val report = generateAnomalyReport(anomaly)
+        sendCrashReport(report)
+    }
+
+    private fun generateAnomalyReport(anomaly: UIAnomalyDetector.UIAnomaly): String {
+        return """
+            |UI ANOMALY REPORT
+            |================
+            |Time: ${dateFormat.format(Date())}
+            |
+            |ANOMALY DETAILS
+            |==============
+            |Component: ${anomaly.component}
+            |Description: ${anomaly.description}
+            |Duration: ${anomaly.duration}ms
+            |Expected Duration: ${anomaly.expectedDuration}ms
+            |
+            |DEVICE INFORMATION
+            |=================
+            |Device: ${Build.MANUFACTURER} ${Build.MODEL}
+            |Android Version: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})
+            |App Version: ${contextRef?.get()?.let { ctx ->
+                ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName
+            } ?: "Unknown"}
+        """.trimMargin()
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {

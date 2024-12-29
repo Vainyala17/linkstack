@@ -64,6 +64,8 @@ import com.hp77.linkstash.presentation.components.SearchBar
 import com.hp77.linkstash.presentation.components.FilterChips
 import com.hp77.linkstash.presentation.components.ShareBottomSheet
 import com.hp77.linkstash.util.Logger
+import com.hp77.linkstash.util.UIAnomalyDetector
+import com.hp77.linkstash.util.SystemLogMonitor
 
 private fun handleLinkClick(
     clickedLink: Link,
@@ -122,18 +124,92 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // Track drawer state
+    var drawerOpenTime by remember { mutableStateOf(0L) }
+    var drawerContentVisible by remember { mutableStateOf(false) }
+    var drawerRenderAttempts by remember { mutableStateOf(0) }
+    var hasGraphicsError by remember { mutableStateOf(false) }
+
+    // Handle drawer state
     LaunchedEffect(state.isDrawerOpen) {
-        if (state.isDrawerOpen) {
-            drawerState.open()
-        } else {
-            drawerState.close()
+        try {
+            if (state.isDrawerOpen) {
+                Logger.d("HomeScreen", "Opening drawer")
+                drawerOpenTime = System.currentTimeMillis()
+                drawerContentVisible = false
+                drawerRenderAttempts = 0
+                hasGraphicsError = false
+                drawerState.open()
+            } else {
+                Logger.d("HomeScreen", "Closing drawer")
+                drawerState.close()
+                drawerContentVisible = false
+                drawerRenderAttempts = 0
+                hasGraphicsError = false
+            }
+        } catch (e: Exception) {
+            // Only log real errors, ignore interruptions
+            if (!e.message?.contains("Mutation interrupted", ignoreCase = true)!!) {
+                Logger.e("HomeScreen", "Drawer operation failed", e)
+            }
         }
     }
 
+    // Monitor drawer state and content
     LaunchedEffect(drawerState.currentValue) {
         when (drawerState.currentValue) {
-            DrawerValue.Open -> viewModel.onEvent(HomeScreenEvent.OnDrawerOpen)
-            DrawerValue.Closed -> viewModel.onEvent(HomeScreenEvent.OnDrawerClose)
+            DrawerValue.Open -> {
+                Logger.d("HomeScreen", "Drawer opened, waiting for content")
+                viewModel.onEvent(HomeScreenEvent.OnDrawerOpen)
+                
+                // Give drawer time to render
+                kotlinx.coroutines.delay(500)
+                
+                // If content isn't visible, start checking for issues
+                if (!drawerContentVisible) {
+                    drawerRenderAttempts++
+                    
+                    // Only check for graphics errors after multiple render attempts
+                    if (drawerRenderAttempts >= 2 && !hasGraphicsError) {
+                        // Check for actual graphics errors
+                        if (SystemLogMonitor.checkForGraphicsErrors()) {
+                            Logger.e("HomeScreen", "Graphics pipeline error detected after $drawerRenderAttempts attempts")
+                            hasGraphicsError = true
+                            viewModel.onEvent(HomeScreenEvent.ShowIssueReport)
+                            viewModel.onEvent(HomeScreenEvent.UpdateIssueDescription(
+                                """
+                                Navigation drawer shows black screen
+                                Time since attempt: ${System.currentTimeMillis() - drawerOpenTime}ms
+                                Render attempts: $drawerRenderAttempts
+                                
+                                System Info:
+                                Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}
+                                Android: ${android.os.Build.VERSION.RELEASE}
+                                
+                                System logs show graphics pipeline issues:
+                                - PQ Session initialization failed
+                                - AAL Engine reconfiguration errors
+                                
+                                This appears to be a system-level graphics issue.
+                                Please try:
+                                1. Closing and reopening the drawer
+                                2. If issue persists, restart the app
+                                3. If still occurring, restart your device
+                                """.trimIndent()
+                            ))
+                        } else {
+                            Logger.d("HomeScreen", "No graphics errors detected after $drawerRenderAttempts attempts")
+                        }
+                    }
+                }
+            }
+            DrawerValue.Closed -> {
+                Logger.d("HomeScreen", "Drawer closed")
+                viewModel.onEvent(HomeScreenEvent.OnDrawerClose)
+                drawerContentVisible = false
+                drawerRenderAttempts = 0
+                hasGraphicsError = false
+            }
         }
     }
 
@@ -143,6 +219,9 @@ fun HomeScreen(
             ModalDrawerSheet(
                 modifier = Modifier.width(300.dp)
             ) {
+                // Mark content as visible when drawer sheet is rendered
+                drawerContentVisible = true
+                Logger.d("HomeScreen", "Drawer content rendered")
                 Spacer(Modifier.height(16.dp))
 
                 // App Logo and Name
@@ -202,10 +281,11 @@ fun HomeScreen(
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
 
-                // Accounts Section
+                // Settings Section
                 NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
-                    label = { Text("Accounts") },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    // Issue Report Dialog
+                    label = { Text("Settings") },
                     selected = false,
                     onClick = {
                         scope.launch {
