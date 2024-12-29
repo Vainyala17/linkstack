@@ -23,7 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.hp77.linkstash.domain.model.GitHubProfile
 
 @Composable
 fun SearchBar(
@@ -36,7 +40,8 @@ fun SearchBar(
     onProfileClick: (() -> Unit)? = null,
     onBackClick: (() -> Unit)? = null,
     autoFocus: Boolean = false,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    githubProfile: GitHubProfile? = null
 ) {
     Box(
         modifier = modifier
@@ -58,11 +63,11 @@ fun SearchBar(
                 ),
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(0.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(0.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -101,10 +106,21 @@ fun SearchBar(
                         )
                     } else if (onProfileClick != null) {
                         IconButton(onClick = onProfileClick) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Profile"
-                            )
+                            if (githubProfile != null) {
+                                AsyncImage(
+                                    model = githubProfile.avatarUrl,
+                                    contentDescription = "GitHub Profile",
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Profile"
+                                )
+                            }
                         }
                     }
                 }
@@ -157,10 +173,21 @@ fun SearchBar(
                             }
                         } else if (onProfileClick != null) {
                             IconButton(onClick = onProfileClick) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Profile"
-                                )
+                                if (githubProfile != null) {
+                                    AsyncImage(
+                                        model = githubProfile.avatarUrl,
+                                        contentDescription = "GitHub Profile",
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Profile"
+                                    )
+                                }
                             }
                         }
                     },

@@ -266,7 +266,8 @@ fun HomeScreen(
                         onMenuClick = { scope.launch { drawerState.open() } },
                         onProfileClick = { viewModel.onEvent(HomeScreenEvent.OnProfileClick) },
                         onClick = onNavigateToSearch,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        githubProfile = state.githubProfile
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))

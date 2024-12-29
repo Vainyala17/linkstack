@@ -98,6 +98,16 @@ fun AboutScreen(
                     FeatureItem("Offline Support")
                 }
             }
+
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Text(
+                text = "Made with ❤ by hp77",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
         }
     }
 }
