@@ -43,12 +43,12 @@ fun AboutScreen(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_logo),
-                contentDescription = "LinkStash Logo",
+                contentDescription = "LinkStack Logo",
                 modifier = Modifier.size(120.dp)
             )
             
             Text(
-                text = "LinkStash",
+                text = "LinkStack",
                 style = MaterialTheme.typography.headlineLarge
             )
             

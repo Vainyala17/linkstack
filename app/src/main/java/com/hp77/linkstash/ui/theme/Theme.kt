@@ -16,31 +16,59 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = LinkStashPrimary,
-    primaryContainer = LinkStashPrimaryVariant,
-    secondary = LinkStashSecondary,
-    secondaryContainer = LinkStashSecondaryVariant,
-    background = LinkStashBackground,
-    surface = LinkStashSurface,
-    surfaceVariant = LinkStashSurfaceVariant,
-    error = LinkStashError
+    primary = Blue80,
+    onPrimary = OnPrimaryDark,
+    primaryContainer = BlueDark,
+    onPrimaryContainer = BlueContainer,
+    
+    secondary = Purple80,
+    onSecondary = OnSecondaryDark,
+    secondaryContainer = PurpleDark,
+    onSecondaryContainer = PurpleContainer,
+    
+    tertiary = Green80,
+    onTertiary = OnTertiaryDark,
+    tertiaryContainer = GreenDark,
+    onTertiaryContainer = GreenContainer,
+    
+    background = SurfaceDark,
+    surface = SurfaceDark,
+    surfaceVariant = SurfaceVariantDark,
+    onSurface = OnSurfaceDark,
+    onSurfaceVariant = OnSurfaceVariantDark,
+    
+    error = Error
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = LinkStashPrimary,
-    primaryContainer = LinkStashPrimaryVariant,
-    secondary = LinkStashSecondary,
-    secondaryContainer = LinkStashSecondaryVariant,
-    background = LinkStashBackground,
-    surface = LinkStashSurface,
-    surfaceVariant = LinkStashSurfaceVariant,
-    error = LinkStashError
+    primary = Blue40,
+    onPrimary = OnPrimaryLight,
+    primaryContainer = BlueContainer,
+    onPrimaryContainer = BlueContainerDark,
+    
+    secondary = Purple40,
+    onSecondary = OnSecondaryLight,
+    secondaryContainer = PurpleContainer,
+    onSecondaryContainer = PurpleContainerDark,
+    
+    tertiary = Green40,
+    onTertiary = OnTertiaryLight,
+    tertiaryContainer = GreenContainer,
+    onTertiaryContainer = GreenContainerDark,
+    
+    background = SurfaceLight,
+    surface = SurfaceLight,
+    surfaceVariant = SurfaceVariantLight,
+    onSurface = OnSurfaceLight,
+    onSurfaceVariant = OnSurfaceVariantLight,
+    
+    error = Error
 )
 
 @Composable
 fun LinkStashTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Set to false to use our custom colors
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -55,7 +83,7 @@ fun LinkStashTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = colorScheme.surface.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

@@ -1,4 +1,5 @@
 [versions]
+core-splashscreen = "1.0.1"
 moshi = "1.15.0"
 markdown = "0.3.1"
 retrofit-scalars = "2.9.0"
@@ -82,6 +83,9 @@ androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", vers
 
 # Markdown
 markdown = { group = "org.jetbrains", name = "markdown", version.ref = "markdown" }
+
+# Splash Screen
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -4,6 +4,8 @@ import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.runtime.mutableStateOf
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -40,6 +42,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val contentReady = mutableStateOf(false)
     @Inject
     lateinit var themePreferences: ThemePreferences
 
@@ -53,7 +56,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        
+        // Keep the splash screen visible until content is ready
+        splashScreen.setKeepOnScreenCondition { !contentReady.value }
         
         // Request notification permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -62,6 +69,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val themeMode by themePreferences.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            
+            // Mark content as ready once the theme is loaded
+            LaunchedEffect(Unit) {
+                contentReady.value = true
+            }
             
             LinkStashTheme(
                 darkTheme = when (themeMode) {
