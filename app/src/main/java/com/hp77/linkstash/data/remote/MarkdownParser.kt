@@ -44,32 +44,33 @@ object MarkdownParser {
                 // Parse link metadata
                 line.startsWith("- ") -> {
                     currentLink?.let {
-                        val (key, value) = parseMetadataLine(line)
-                        when (key) {
-                            "URL" -> it.url = value
-                            "Type" -> it.type = LinkType.valueOf(value)
-                            "Added" -> {
-                                val parsedDate = dateFormatter.parse(value)
-                                if (parsedDate != null) {
-                                    it.createdAt = parsedDate.time
+                        // Special handling for Notes metadata since its value is in a code block
+                        if (line.trim() == "- Notes:") {
+                            it.notes = ""
+                        } else {
+                            val (key, value) = parseMetadataLine(line)
+                            when (key) {
+                                "URL" -> it.url = value
+                                "Type" -> it.type = LinkType.valueOf(value)
+                                "Added" -> {
+                                    val parsedDate = dateFormatter.parse(value)
+                                    if (parsedDate != null) {
+                                        it.createdAt = parsedDate.time
+                                    }
                                 }
-                            }
-                            "Status" -> it.isCompleted = value == "READ"
-                            "Completed" -> {
-                                val parsedDate = dateFormatter.parse(value)
-                                if (parsedDate != null) {
-                                    it.completedAt = parsedDate.time
+                                "Status" -> it.isCompleted = value == "READ"
+                                "Completed" -> {
+                                    val parsedDate = dateFormatter.parse(value)
+                                    if (parsedDate != null) {
+                                        it.completedAt = parsedDate.time
+                                    }
                                 }
-                            }
-                            "Tags" -> it.tags = value.split(", ").map { tag ->
-                                Tag(
-                                    id = UUID.randomUUID().toString(),
-                                    name = tag.removePrefix("#").trim()
-                                )
-                            }
-                            "Notes" -> {
-                                // Notes are in a code block, so we'll handle them separately
-                                it.notes = ""
+                                "Tags" -> it.tags = value.split(", ").map { tag ->
+                                    Tag(
+                                        id = UUID.randomUUID().toString(),
+                                        name = tag.removePrefix("#").trim()
+                                    )
+                                }
                             }
                         }
                     }
