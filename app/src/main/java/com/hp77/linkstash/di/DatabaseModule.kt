@@ -13,6 +13,7 @@ import com.hp77.linkstash.data.local.migrations.MIGRATION_2_3
 import com.hp77.linkstash.data.local.migrations.MIGRATION_3_4
 import com.hp77.linkstash.data.local.migrations.MIGRATION_4_5
 import com.hp77.linkstash.data.local.migrations.MIGRATION_5_6
+import com.hp77.linkstash.data.local.migrations.MIGRATION_6_7
 import com.hp77.linkstash.data.local.dao.GitHubProfileDao
 import com.hp77.linkstash.data.local.dao.HackerNewsProfileDao
 import com.hp77.linkstash.data.local.util.DatabaseMaintenanceUtil
@@ -41,7 +42,7 @@ object DatabaseModule {
             LinkStashDatabase::class.java,
             LinkStashDatabase.DATABASE_NAME
         )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .fallbackToDestructiveMigration() // Allow fallback if migration fails
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING) // Enable WAL mode
             .setQueryExecutor(Executors.newFixedThreadPool(4)) // Optimize thread pool

@@ -29,6 +29,9 @@ interface LinkDao {
     @Query("SELECT * FROM links WHERE id = :linkId")
     suspend fun getLinkById(linkId: String): LinkEntity?
 
+    @Query("SELECT * FROM links WHERE url = :url LIMIT 1")
+    suspend fun getLinkByUrl(url: String): LinkEntity?
+
     @Transaction
     @Query("SELECT * FROM links WHERE id = :linkId")
     suspend fun getLinkWithTags(linkId: String): LinkWithTags?
@@ -85,6 +88,9 @@ interface LinkDao {
 
     @Query("DELETE FROM link_tag_cross_ref WHERE linkId = :linkId")
     suspend fun deleteAllTagsForLink(linkId: String)
+
+    @Query("UPDATE links SET scrollPosition = :position WHERE id = :linkId")
+    suspend fun updateScrollPosition(linkId: String, position: Float)
 
     // Sync-related methods
     @Query("UPDATE links SET lastSyncedAt = :timestamp, syncError = NULL WHERE id = :linkId")

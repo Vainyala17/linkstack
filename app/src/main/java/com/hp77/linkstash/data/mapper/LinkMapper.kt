@@ -26,6 +26,7 @@ fun LinkEntity.toLink() = Link(
     hackerNewsUrl = hackerNewsUrl,
     lastSyncedAt = lastSyncedAt,
     syncError = syncError,
+    scrollPosition = scrollPosition,
     tags = emptyList()
 )
 
@@ -55,7 +56,8 @@ fun Link.toLinkEntity(): LinkEntity {
         hackerNewsId = hackerNewsId,
         hackerNewsUrl = hackerNewsUrl,
         lastSyncedAt = lastSyncedAt,
-        syncError = syncError
+        syncError = syncError,
+        scrollPosition = scrollPosition
     )
 }
 

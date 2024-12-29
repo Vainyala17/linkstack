@@ -26,5 +26,6 @@ data class LinkEntity(
     val hackerNewsUrl: String? = null,
     // GitHub sync
     val lastSyncedAt: Long? = null,
-    val syncError: String? = null
+    val syncError: String? = null,
+    val scrollPosition: Float = 0f // Store scroll position as percentage (0.0 to 1.0)
 )

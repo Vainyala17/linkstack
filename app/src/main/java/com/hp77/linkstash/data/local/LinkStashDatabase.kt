@@ -15,7 +15,7 @@ import com.hp77.linkstash.data.local.entity.*
         GitHubProfileEntity::class,
         HackerNewsProfileEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

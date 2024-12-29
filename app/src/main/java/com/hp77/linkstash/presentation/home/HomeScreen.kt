@@ -104,7 +104,7 @@ fun HomeScreen(
     onNavigateToEdit: (Link) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToWebView: (String) -> Unit,
+    onNavigateToWebView: (Link) -> Unit,
     onNavigateToAbout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -610,7 +610,7 @@ fun HomeScreen(
                 onDismiss = { selectedLink = null },
                 onOpenInApp = {
                     selectedLink = null
-                    onNavigateToWebView(link.url)
+                    onNavigateToWebView(link)
                 },
                 onOpenInBrowser = {
                     selectedLink = null

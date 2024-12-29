@@ -34,11 +34,17 @@ import com.hp77.linkstash.ui.theme.LinkStashTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import com.hp77.linkstash.util.Logger
+import com.hp77.linkstash.util.DeepLinkHandler
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var themePreferences: ThemePreferences
+
+    @Inject
+    lateinit var deepLinkHandler: DeepLinkHandler
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -74,8 +80,9 @@ class MainActivity : ComponentActivity() {
                     // Handle deep link from notification
                     LaunchedEffect(intent?.data) {
                         intent?.data?.toString()?.let { url ->
-                            // Navigate to WebView with the URL
-                            navController.navigate(Screen.WebView.createRoute(url))
+                            // Get or create link and navigate to WebView
+                            val linkId = deepLinkHandler.handleDeepLink(url)
+                            navController.navigate(Screen.WebView.createRoute(linkId))
                         }
                     }
 
@@ -98,8 +105,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToSettings = {
                                     navController.navigate(Screen.Settings.route)
                                 },
-                                onNavigateToWebView = { url ->
-                                    navController.navigate(Screen.WebView.createRoute(url))
+                                onNavigateToWebView = { link ->
+                                    navController.navigate(Screen.WebView.createRoute(link.id))
                                 },
                                 onNavigateToAbout = {
                                     navController.navigate(Screen.About.route)
@@ -113,7 +120,7 @@ class MainActivity : ComponentActivity() {
                                     navController.popBackStack()
                                 },
                                 onNavigateToLink = { link ->
-                                    navController.navigate(Screen.WebView.createRoute(link.url))
+                                    navController.navigate(Screen.WebView.createRoute(link.id))
                                 },
                                 onEditLink = { link ->
                                     navController.navigate(Screen.EditLink.createRoute(link.id))
@@ -157,17 +164,14 @@ class MainActivity : ComponentActivity() {
                         composable(
                             route = Screen.WebView.route,
                             arguments = listOf(
-                                navArgument("url") {
+                                navArgument("linkId") {
                                     type = NavType.StringType
                                 }
                             )
                         ) { backStackEntry ->
-                            val url = URLDecoder.decode(
-                                backStackEntry.arguments?.getString("url") ?: "",
-                                "UTF-8"
-                            )
+                            val linkId = backStackEntry.arguments?.getString("linkId")
+                                ?: return@composable
                             WebViewScreen(
-                                url = url,
                                 onBackPressed = {
                                     navController.popBackStack()
                                 }

@@ -20,6 +20,7 @@ data class Link(
     // GitHub sync
     val lastSyncedAt: Long? = null,
     val syncError: String? = null,
+    val scrollPosition: Float = 0f,
     val tags: List<Tag>
 ) {
     companion object {
@@ -41,6 +42,7 @@ data class Link(
             hackerNewsUrl = null,
             lastSyncedAt = null,
             syncError = null,
+            scrollPosition = 0f,
             tags = emptyList()
         )
     }

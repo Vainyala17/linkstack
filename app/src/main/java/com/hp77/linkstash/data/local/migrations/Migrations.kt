@@ -1,8 +1,16 @@
 package com.hp77.linkstash.data.local.migrations
 
 import androidx.room.migration.Migration
+import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.UUID
+
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Add scrollPosition column with default value 0
+        db.execSQL("ALTER TABLE links ADD COLUMN scrollPosition REAL NOT NULL DEFAULT 0")
+    }
+}
 
 val MIGRATION_5_6 = object : Migration(5, 6) {
     override fun migrate(db: SupportSQLiteDatabase) {

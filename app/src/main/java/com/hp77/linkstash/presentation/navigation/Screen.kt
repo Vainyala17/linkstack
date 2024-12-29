@@ -9,9 +9,9 @@ sealed class Screen(val route: String) {
         }
     }
     object Search : Screen("search")
-    object WebView : Screen("webview?url={url}") {
-        fun createRoute(url: String): String {
-            return "webview?url=$url"
+    object WebView : Screen("webview/{linkId}") {
+        fun createRoute(linkId: String): String {
+            return "webview/$linkId"
         }
     }
     object Settings : Screen("settings")
