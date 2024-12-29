@@ -100,6 +100,9 @@ object MarkdownParser {
 
     private fun parseMetadataLine(line: String): Pair<String, String> {
         val parts = line.removePrefix("- ").split(": ", limit = 2)
+        if (parts.size < 2) {
+            throw IllegalStateException("Invalid metadata line format: $line")
+        }
         return parts[0] to parts[1]
     }
 
