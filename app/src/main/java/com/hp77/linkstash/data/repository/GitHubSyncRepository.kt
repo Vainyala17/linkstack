@@ -181,158 +181,112 @@ class GitHubSyncRepository @Inject constructor(
                 }
             }
 
-            // First, let's get all markdown files from the repo
-            Logger.d(TAG, "Listing repository contents")
-            val contentsResponse = gitHubService.listDirectoryContents(
-                authHeader,
-                currentRepoOwner,
-                repoName,
-                ""  // Empty path to list root directory
-            )
+        // First, let's get all markdown files from the repo and parse all existing links
+        Logger.d(TAG, "Listing repository contents")
+        val contentsResponse = gitHubService.listDirectoryContents(
+            authHeader,
+            currentRepoOwner,
+            repoName,
+            ""  // Empty path to list root directory
+        )
 
-            if (contentsResponse.isSuccessful) {
-                withContext(Dispatchers.IO) {
-                    val contents = contentsResponse.body() ?: emptyList()
-                    
-                    val linkstashFiles = contents.filter { content -> 
-                        content.type == "file" && FILE_PATTERN.matcher(content.name).matches() 
-                    }
-                    
-                    Logger.d(TAG, "Found ${linkstashFiles.size} LinkStash backup files")
+        if (!contentsResponse.isSuccessful) {
+            val error = handleErrorResponse(contentsResponse, "Failed to list repository contents")
+            Logger.e(TAG, error)
+            throw Exception(error)
+        }
 
-                    // Get all remote links
-                    val remoteLinks = mutableListOf<Link>()
-                    linkstashFiles.forEach { file ->
-                        Logger.d(TAG, "Reading backup file: ${file.name}")
-                        try {
-                            val fileResponse = gitHubService.getFileContent(
-                                authHeader,
-                                currentRepoOwner,
-                                repoName,
-                                file.path
-                            )
-                            
-                            if (fileResponse.isSuccessful) {
-                                fileResponse.body()?.content?.let { content ->
-                                    val decodedContent = String(Base64.decode(content, Base64.DEFAULT))
-                    val parsedLinks = MarkdownParser.parseMarkdown(decodedContent)
-                    Logger.d(TAG, "Parsed ${parsedLinks.size} links from ${file.name}")
-                    remoteLinks.addAll(parsedLinks)
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Logger.e(TAG, "Error reading file ${file.name}", e)
-                        }
-                    }
+        // Get all existing remote links first
+        val remoteLinks = mutableListOf<Link>()
+        val contents = contentsResponse.body() ?: emptyList()
+        val linkstashFiles = contents.filter { content -> 
+            content.type == "file" && FILE_PATTERN.matcher(content.name).matches() 
+        }
+        
+        Logger.d(TAG, "Found ${linkstashFiles.size} LinkStash backup files")
 
-                    // Get all local links for comparison
-                    val localLinks = links.associateBy { it.url }
-                    
-                    // Find links to import or update
-                    val linksToImport = mutableListOf<Link>()
-                    
-                    remoteLinks.forEach { remoteLink ->
-                        val localLink = localLinks[remoteLink.url]
-                        
-                        if (localLink == null) {
-                            // New link, import it
-                            Logger.d(TAG, "Found new link to import: ${remoteLink.url}")
-                            linksToImport.add(remoteLink)
-                        } else if (!areLinksEffectivelyEqual(remoteLink, localLink)) {
-                            // Links have same URL but different content, import as new
-                            Logger.d(TAG, "Found modified link to import: ${remoteLink.url}")
-                            Logger.d(TAG, "Local link: title='${localLink.title}', desc='${localLink.description}', type=${localLink.type}")
-                            Logger.d(TAG, "Remote link: title='${remoteLink.title}', desc='${remoteLink.description}', type=${remoteLink.type}")
-                            linksToImport.add(remoteLink)
-                        } else {
-                            Logger.d(TAG, "Skipping duplicate link: ${remoteLink.url}")
-                        }
-                    }
-
-                    Logger.d(TAG, "Found ${linksToImport.size} links to import")
-
-                    // Import links
-                    if (linksToImport.isNotEmpty()) {
-                        Logger.d(TAG, "Importing links")
-                        linksToImport.forEach { link ->
-                            val entity = link.toLinkEntity()
-                            linkDao.insertLink(entity)
-                            Logger.d(TAG, "Imported link: ${link.url}")
-                        }
-                    }
-                }
-            }
-
-            // Generate filename with date
-            val filename = getBackupFilename()
-            Logger.d(TAG, "Using filename: $filename")
-
-            // Try to get existing file to get its SHA and content
-            Logger.d(TAG, "Checking for existing file: $filename")
-            val fileResponse = gitHubService.getFileContent(
-                authHeader,
-                currentRepoOwner,
-                repoName,
-                filename
-            )
-
-            // Get existing links if file exists
-            val existingLinks = if (fileResponse.isSuccessful) {
-                Logger.d(TAG, "Found existing file, reading content")
-                fileResponse.body()?.content?.let { base64Content ->
-                    val decodedContent = String(Base64.decode(base64Content, Base64.DEFAULT))
-                    MarkdownParser.parseMarkdown(decodedContent)
-                } ?: emptyList()
-            } else {
-                Logger.d(TAG, "No existing file for today, will create new one")
-                emptyList()
-            }
-
-            // Merge links with duplicate detection
-            val mergedLinks = mutableListOf<Link>()
-            val seenUrls = mutableSetOf<String>()
-
-            // Add existing links first
-            existingLinks.forEach { link ->
-                if (link.url !in seenUrls) {
-                    mergedLinks.add(link)
-                    seenUrls.add(link.url)
-                }
-            }
-
-            // Add new links, checking for meaningful differences
-            links.forEach { link ->
-                val existingLink = mergedLinks.find { it.url == link.url }
-                if (existingLink == null) {
-                    mergedLinks.add(link)
-                    seenUrls.add(link.url)
-                } else if (!areLinksEffectivelyEqual(link, existingLink)) {
-                    // Replace existing link if there are meaningful differences
-                    mergedLinks[mergedLinks.indexOf(existingLink)] = link
-                }
-            }
-
-            Logger.d(TAG, "Merged links: ${mergedLinks.size} (${existingLinks.size} existing + ${links.size} new)")
-
-            // Convert merged links to markdown and encode in base64
-            Logger.d(TAG, "Converting ${mergedLinks.size} links to markdown")
-            val markdown = MarkdownUtils.run { mergedLinks.toMarkdown() }
-            val content = Base64.encodeToString(markdown.toByteArray(), Base64.NO_WRAP)
-
-            // Update or create file
-            val sha = if (fileResponse.isSuccessful) fileResponse.body()?.sha else null
-            Logger.d(TAG, "Updating file with ${if (sha != null) "existing SHA" else "no SHA (new file)"}")
-            val updateResponse = gitHubService.updateFile(
-                authHeader,
-                currentRepoOwner,
-                repoName,
-                filename,
-                UpdateFileRequest(
-                    message = if (sha != null) "Update links" else "Create backup file for ${filename.substringAfter(FILE_PREFIX).substringBefore('.')}",
-                    content = content,
-                    sha = sha
+        linkstashFiles.forEach { file ->
+            Logger.d(TAG, "Reading backup file: ${file.name}")
+            try {
+                val fileResponse = gitHubService.getFileContent(
+                    authHeader,
+                    currentRepoOwner,
+                    repoName,
+                    file.path
                 )
+                
+                if (fileResponse.isSuccessful) {
+                    fileResponse.body()?.content?.let { content ->
+                        val decodedContent = String(Base64.decode(content, Base64.DEFAULT))
+                        val parsedLinks = MarkdownParser.parseMarkdown(decodedContent)
+                        Logger.d(TAG, "Parsed ${parsedLinks.size} links from ${file.name}")
+                        remoteLinks.addAll(parsedLinks)
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "Error reading file ${file.name}", e)
+            }
+        }
+
+        // Filter out links that already exist in remote
+        val (linksToSync, skippedLinks) = links.partition { localLink ->
+            val remoteLink = remoteLinks.find { it.url == localLink.url }
+            remoteLink == null || !areLinksEffectivelyEqual(localLink, remoteLink)
+        }
+
+        Logger.d(TAG, "Found ${linksToSync.size} links to sync and ${skippedLinks.size} duplicate links")
+
+        // Update sync status for skipped links
+        withContext(Dispatchers.IO) {
+            skippedLinks.forEach { link ->
+                Logger.d(TAG, "Skipping duplicate link: ${link.url}")
+                linkDao.updateSyncError(link.id, "Link already exists in GitHub")
+            }
+        }
+
+        if (linksToSync.isEmpty()) {
+            Logger.d(TAG, "No new links to sync")
+            return@runCatching
+        }
+
+        // Generate filename with date
+        val filename = getBackupFilename()
+        Logger.d(TAG, "Using filename: $filename")
+
+        // Convert links to sync to markdown and encode in base64
+        Logger.d(TAG, "Converting ${linksToSync.size} links to markdown")
+        val markdown = MarkdownUtils.run { linksToSync.toMarkdown() }
+        val content = Base64.encodeToString(markdown.toByteArray(), Base64.NO_WRAP)
+
+        // Check if file exists and get its SHA
+        Logger.d(TAG, "Checking if file exists: $filename")
+        val fileResponse = gitHubService.getFileContent(
+            authHeader,
+            currentRepoOwner,
+            repoName,
+            filename
+        )
+
+        // Get SHA if file exists
+        val sha = if (fileResponse.isSuccessful) {
+            fileResponse.body()?.sha
+        } else {
+            null
+        }
+
+        // Create or update file
+        Logger.d(TAG, if (sha != null) "Updating existing file" else "Creating new file")
+        val updateResponse = gitHubService.updateFile(
+            authHeader,
+            currentRepoOwner,
+            repoName,
+            filename,
+            UpdateFileRequest(
+                message = if (sha != null) "Update links" else "Add new links",
+                content = content,
+                sha = sha
             )
+        )
 
             if (!updateResponse.isSuccessful) {
                 val error = handleErrorResponse(updateResponse, "Failed to update file")

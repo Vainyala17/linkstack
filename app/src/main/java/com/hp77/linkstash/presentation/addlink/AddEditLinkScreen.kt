@@ -92,12 +92,18 @@ fun AddEditLinkScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            OutlinedTextField(
-                value = state.url,
-                onValueChange = { viewModel.onEvent(AddEditLinkScreenEvent.OnUrlChange(it)) },
-                label = { Text("URL") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column {
+                OutlinedTextField(
+                    value = state.url,
+                    onValueChange = { viewModel.onEvent(AddEditLinkScreenEvent.OnUrlChange(it)) },
+                    label = { Text("URL") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = state.isUrlError,
+                    supportingText = if (state.isUrlError) {
+                        { Text(state.error ?: "Invalid URL", color = MaterialTheme.colorScheme.error) }
+                    } else null
+                )
+            }
 
             OutlinedTextField(
                 value = state.title ?: "",

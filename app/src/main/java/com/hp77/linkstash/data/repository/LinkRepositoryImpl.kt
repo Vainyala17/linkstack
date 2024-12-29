@@ -77,6 +77,17 @@ class LinkRepositoryImpl @Inject constructor(
         return linkWithTags.toLink()
     }
 
+    override suspend fun getLinkByUrl(url: String): Link? {
+        Logger.d("LinkRepository", "Fetching link with url: $url")
+        val linkWithTags = linkDao.getLinkByUrl(url)
+        if (linkWithTags == null) {
+            Logger.e("LinkRepository", "Link not found with id: $url")
+            return null
+        }
+        Logger.d("LinkRepository", "Found link: ${linkWithTags.toLink()}")
+        return linkWithTags.toLink()
+    }
+
     override fun getAllLinks(): Flow<List<Link>> {
         return linkDao.getAllLinksWithTags().map { links ->
             links.map { it.toLink() }

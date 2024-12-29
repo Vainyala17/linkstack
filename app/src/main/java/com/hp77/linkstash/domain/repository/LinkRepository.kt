@@ -8,6 +8,7 @@ interface LinkRepository {
     suspend fun updateLink(link: Link)
     suspend fun deleteLink(link: Link)
     suspend fun getLinkById(id: String): Link?
+    suspend fun getLinkByUrl(url: String): Link?
     fun getAllLinks(): Flow<List<Link>>
     fun getActiveLinks(): Flow<List<Link>>
     fun getArchivedLinks(): Flow<List<Link>>

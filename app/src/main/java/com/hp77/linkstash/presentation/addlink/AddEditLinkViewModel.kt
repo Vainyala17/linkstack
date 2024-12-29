@@ -71,7 +71,27 @@ class AddEditLinkViewModel @Inject constructor(
         Logger.d("AddEditLinkVM", "Received event: ${event::class.simpleName}")
         when (event) {
             is AddEditLinkScreenEvent.OnUrlChange -> {
-                _state.update { it.copy(url = event.url) }
+                viewModelScope.launch {
+                    val url = event.url
+                    _state.update { it.copy(url = url) }
+                    
+                    // Only check for duplicates if URL is not empty and we're not in edit mode
+                    // or if we're in edit mode but the URL has changed from the original
+                    if (url.isNotEmpty() && (!state.value.isEditMode || url != linkRepository.getLinkById(state.value.linkId!!)?.url)) {
+                        val existingLink = linkRepository.getLinkByUrl(url)
+                        if (existingLink != null) {
+                            _state.update { it.copy(
+                                isUrlError = true,
+                                error = "This URL already exists in your links"
+                            ) }
+                        } else {
+                            _state.update { it.copy(
+                                isUrlError = false,
+                                error = null
+                            ) }
+                        }
+                    }
+                }
             }
             is AddEditLinkScreenEvent.OnTitleChange -> {
                 _state.update { it.copy(title = event.title.ifEmpty { null }) }
@@ -169,6 +189,16 @@ class AddEditLinkViewModel @Inject constructor(
                 Logger.d("AddEditLinkVM", "Attempting to save link")
                 viewModelScope.launch {
                     try {
+                        // Check for duplicate URL before saving
+                        val existingLink = linkRepository.getLinkByUrl(state.value.url)
+                        if (existingLink != null && (!state.value.isEditMode || existingLink.id != state.value.linkId)) {
+                            _state.update { it.copy(
+                                error = "This URL already exists in your links",
+                                isUrlError = true
+                            ) }
+                            return@launch
+                        }
+
                         if (state.value.isEditMode) {
                             val result = updateLinkUseCase(
                                 Link(
