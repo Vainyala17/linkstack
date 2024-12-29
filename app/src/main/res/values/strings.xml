@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App Info -->
-    <string name="app_name">LinkStash</string>
+    <string name="app_name">LinkStack</string>
     <string name="app_description">A modern link management app</string>
     <string name="app_version">Version 1.0.0</string>
 
@@ -48,7 +48,7 @@
     <string name="msg_no_results">No search results</string>
 
     <!-- Content Descriptions -->
-    <string name="cd_app_logo">LinkStash Logo</string>
+    <string name="cd_app_logo">LinkStack Logo</string>
     <string name="cd_back">Navigate back</string>
     <string name="cd_search">Search</string>
     <string name="cd_more">More options</string>
