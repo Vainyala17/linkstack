@@ -47,4 +47,7 @@ interface TagDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM tags WHERE name = :name)")
     suspend fun isTagExists(name: String): Boolean
+
+    @Query("SELECT COUNT(*) FROM link_tag_cross_ref WHERE tagId = :tagId")
+    suspend fun getLinkedLinksCount(tagId: String): Int
 }

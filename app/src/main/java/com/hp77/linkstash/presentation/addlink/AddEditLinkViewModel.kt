@@ -37,7 +37,10 @@ class AddEditLinkViewModel @Inject constructor(
         viewModelScope.launch {
             val allTags = tagRepository.getAllTags().first()
             Logger.d("AddEditLinkVM", "Loaded ${allTags.size} available tags")
-            _state.update { it.copy(availableTags = allTags) }
+            // Filter out duplicate tags (case-insensitive)
+            val uniqueTags = allTags.distinctBy { it.name.lowercase() }
+            Logger.d("AddEditLinkVM", "Filtered to ${uniqueTags.size} unique tags")
+            _state.update { it.copy(availableTags = uniqueTags) }
         }
 
         // Initialize edit mode if linkId is provided
@@ -54,9 +57,6 @@ class AddEditLinkViewModel @Inject constructor(
                         notes = link.notes,
                         reminderTime = link.reminderTime,
                         selectedTags = link.tags,
-                        availableTags = _state.value.availableTags.filter { availableTag ->
-                            !link.tags.any { it.id == availableTag.id }
-                        },
                         isEditMode = true,
                         linkId = linkId
                     ) }
@@ -114,11 +114,16 @@ class AddEditLinkViewModel @Inject constructor(
             is AddEditLinkScreenEvent.OnTagSelect -> {
                 val selectedTag = _state.value.availableTags.find { it.name == event.tagName }
                 selectedTag?.let { tag ->
-                    _state.update { currentState ->
-                        currentState.copy(
-                            selectedTags = currentState.selectedTags + tag,
-                            availableTags = currentState.availableTags - tag
-                        )
+                    // Check if tag already exists in selected tags (case-insensitive)
+                    val tagAlreadySelected = _state.value.selectedTags.any { 
+                        it.name.equals(tag.name, ignoreCase = true) 
+                    }
+                    if (!tagAlreadySelected) {
+                        _state.update { currentState ->
+                            currentState.copy(
+                                selectedTags = currentState.selectedTags + tag
+                            )
+                        }
                     }
                 }
             }
@@ -127,8 +132,7 @@ class AddEditLinkViewModel @Inject constructor(
                 deselectedTag?.let { tag ->
                     _state.update { currentState ->
                         currentState.copy(
-                            selectedTags = currentState.selectedTags - tag,
-                            availableTags = currentState.availableTags + tag
+                            selectedTags = currentState.selectedTags - tag
                         )
                     }
                 }
@@ -136,12 +140,23 @@ class AddEditLinkViewModel @Inject constructor(
             is AddEditLinkScreenEvent.OnTagAdd -> {
                 if (_state.value.newTagName.isNotEmpty()) {
                     viewModelScope.launch {
-                        val newTag = tagRepository.getOrCreateTag(_state.value.newTagName)
-                        _state.update { currentState ->
-                            currentState.copy(
-                                selectedTags = currentState.selectedTags + newTag,
-                                newTagName = "" // Reset the input field
-                            )
+                        // Check if tag with same name (case-insensitive) already exists in selected tags
+                        val tagAlreadySelected = _state.value.selectedTags.any { 
+                            it.name.equals(_state.value.newTagName.trim(), ignoreCase = true) 
+                        }
+                        
+                        if (!tagAlreadySelected) {
+                            val newTag = tagRepository.getOrCreateTag(_state.value.newTagName)
+                            _state.update { currentState ->
+                                currentState.copy(
+                                    selectedTags = currentState.selectedTags + newTag,
+                                    availableTags = currentState.availableTags + newTag,
+                                    newTagName = "" // Reset the input field
+                                )
+                            }
+                        } else {
+                            // Just clear the input field if tag already exists
+                            _state.update { it.copy(newTagName = "") }
                         }
                     }
                 }
@@ -163,9 +178,6 @@ class AddEditLinkViewModel @Inject constructor(
                                 notes = link.notes,
                                 reminderTime = link.reminderTime,
                                 selectedTags = link.tags,
-                                availableTags = currentState.availableTags.filter { availableTag ->
-                                    !link.tags.any { it.id == availableTag.id }
-                                },
                                 isEditMode = true,
                                 linkId = event.linkId
                             )
@@ -175,6 +187,65 @@ class AddEditLinkViewModel @Inject constructor(
             }
             is AddEditLinkScreenEvent.OnToggleFavorite -> {
                 // TODO: Implement favorite toggle
+            }
+            is AddEditLinkScreenEvent.OnInitiateTagDelete -> {
+                viewModelScope.launch {
+                    val tagToDelete = _state.value.availableTags.find { it.name == event.tagName }
+                    tagToDelete?.let { tag ->
+                        try {
+                            // Get the number of links using this tag
+                            val affectedLinks = tagRepository.getLinkedLinksCount(tag.id)
+                            
+                            _state.update { currentState ->
+                                currentState.copy(
+                                    showDeleteTagDialog = true,
+                                    tagToDelete = tag,
+                                    tagDeleteAffectedLinks = affectedLinks
+                                )
+                            }
+                            Logger.d("AddEditLinkVM", "Showing delete dialog for tag: ${tag.name}, affects $affectedLinks links")
+                        } catch (e: Exception) {
+                            Logger.e("AddEditLinkVM", "Error checking tag links: ${e.message}", e)
+                            _state.update { it.copy(error = "Failed to check tag usage: ${e.message}") }
+                        }
+                    }
+                }
+            }
+            is AddEditLinkScreenEvent.OnConfirmTagDelete -> {
+                viewModelScope.launch {
+                    _state.value.tagToDelete?.let { tag ->
+                        try {
+                            tagRepository.deleteTag(tag)
+                            Logger.d("AddEditLinkVM", "Successfully deleted tag: ${tag.name}")
+                            
+                            // Remove from available tags and selected tags
+                            _state.update { currentState ->
+                                currentState.copy(
+                                    availableTags = currentState.availableTags.filter { it.id != tag.id },
+                                    selectedTags = currentState.selectedTags.filter { it.id != tag.id },
+                                    showDeleteTagDialog = false,
+                                    tagToDelete = null,
+                                    tagDeleteAffectedLinks = 0
+                                )
+                            }
+                        } catch (e: Exception) {
+                            Logger.e("AddEditLinkVM", "Error deleting tag: ${e.message}", e)
+                            _state.update { it.copy(
+                                error = "Failed to delete tag: ${e.message}",
+                                showDeleteTagDialog = false,
+                                tagToDelete = null,
+                                tagDeleteAffectedLinks = 0
+                            ) }
+                        }
+                    }
+                }
+            }
+            is AddEditLinkScreenEvent.OnDismissTagDeleteDialog -> {
+                _state.update { it.copy(
+                    showDeleteTagDialog = false,
+                    tagToDelete = null,
+                    tagDeleteAffectedLinks = 0
+                ) }
             }
             is AddEditLinkScreenEvent.OnToggleArchive -> {
                 // TODO: Implement archive toggle
