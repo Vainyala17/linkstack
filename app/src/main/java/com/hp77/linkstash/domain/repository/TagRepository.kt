@@ -16,4 +16,5 @@ interface TagRepository {
     suspend fun removeTagFromLink(tag: Tag, link: Link)
     suspend fun isTagExists(name: String): Boolean
     suspend fun getOrCreateTag(name: String): Tag
+    suspend fun getLinkedLinksCount(tagId: String): Int
 }

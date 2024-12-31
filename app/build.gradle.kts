@@ -30,8 +30,8 @@ android {
         
         // Add SDK version handling
         manifestPlaceholders["sdkVersion"] = "3"
-        versionCode = 12  // Increment for each release
-        versionName = "1.2.3"  // Follow semantic versioning
+        versionCode = 14  // Increment for each release
+        versionName = "1.2.5"  // Follow semantic versioning
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

@@ -19,5 +19,8 @@ data class AddEditLinkScreenState(
     val isArchived: Boolean = false,
     val reminderTime: Long? = null,
     val saved: Boolean = false,
-    val notes: String? = null
+    val notes: String? = null,
+    val showDeleteTagDialog: Boolean = false,
+    val tagToDelete: Tag? = null,
+    val tagDeleteAffectedLinks: Int = 0
 )

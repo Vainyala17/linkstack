@@ -78,6 +78,10 @@ class TagRepositoryImpl @Inject constructor(
         return tagDao.isTagExists(name)
     }
 
+    override suspend fun getLinkedLinksCount(tagId: String): Int {
+        return tagDao.getLinkedLinksCount(tagId)
+    }
+
     override suspend fun getOrCreateTag(name: String): Tag {
         val trimmedName = name.trim()
         

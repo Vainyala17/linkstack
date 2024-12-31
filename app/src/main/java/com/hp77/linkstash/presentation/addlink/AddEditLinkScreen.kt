@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -18,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -154,10 +157,22 @@ fun AddEditLinkScreen(
                 
                 // Available Tags
                 if (state.availableTags.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Available Tags",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
                     TagChips(
                         tags = state.availableTags,
                         selectedTags = state.selectedTags,
-                        onTagClick = { tag -> viewModel.onEvent(AddEditLinkScreenEvent.OnTagSelect(tagName = tag.name)) }
+                        onTagClick = { tag -> viewModel.onEvent(AddEditLinkScreenEvent.OnTagSelect(tagName = tag.name)) },
+                        onTagLongClick = { tag -> viewModel.onEvent(AddEditLinkScreenEvent.OnInitiateTagDelete(tagName = tag.name)) }
                     )
                 }
                 
@@ -193,6 +208,42 @@ fun AddEditLinkScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Save")
+            }
+
+            // Delete Tag Confirmation Dialog
+            if (state.showDeleteTagDialog) {
+                AlertDialog(
+                    onDismissRequest = { 
+                        viewModel.onEvent(AddEditLinkScreenEvent.OnDismissTagDeleteDialog)
+                    },
+                    title = { Text("Delete Tag") },
+                    text = {
+                        val message = if (state.tagDeleteAffectedLinks > 0) {
+                            "This tag is used by ${state.tagDeleteAffectedLinks} link(s). Deleting it will remove the tag from all these links. Are you sure you want to delete this tag?"
+                        } else {
+                            "Are you sure you want to delete this tag?"
+                        }
+                        Text(message)
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.onEvent(AddEditLinkScreenEvent.OnConfirmTagDelete)
+                            }
+                        ) {
+                            Text("Delete")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.onEvent(AddEditLinkScreenEvent.OnDismissTagDeleteDialog)
+                            }
+                        ) {
+                            Text("Cancel")
+                        }
+                    }
+                )
             }
         }
     }
