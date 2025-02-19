@@ -1,18 +1,15 @@
 package com.hp77.linkstash.presentation.components
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import com.hp77.linkstash.presentation.components.NoRippleInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +25,22 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.hp77.linkstash.domain.model.GitHubProfile
+
+@Composable
+fun LeadingIcon(onBackClick: (() -> Unit)?, onMenuClick: (() -> Unit)?) {
+    when {
+        onBackClick != null -> SearchIconButton(onBackClick, Icons.Default.ArrowBack, "Back")
+        onMenuClick != null -> SearchIconButton(onMenuClick, Icons.Default.Menu, "Menu")
+        else -> Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+    }
+}
+
+@Composable
+fun SearchIconButton(onClick: () -> Unit, icon: ImageVector, contentDesc: String) {
+    IconButton(onClick = onClick) {
+        Icon(imageVector = icon, contentDescription = contentDesc)
+    }
+}
 
 @Composable
 fun SearchBar(
@@ -49,19 +62,18 @@ fun SearchBar(
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         if (onClick != null) {
-            Button(
-                onClick = onClick,
-                modifier = Modifier.fillMaxWidth(),
+            val interactionSource = remember { MutableInteractionSource() }
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(CircleShape)
+                    .clickable(
+                        onClick = { onClick.invoke() },
+                        interactionSource = interactionSource,
+                        indication = null
+                    ),
                 shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    contentColor = MaterialTheme.colorScheme.primary
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 2.dp,
-                    pressedElevation = 4.dp
-                ),
-                contentPadding = PaddingValues(horizontal = 16.dp)
+                tonalElevation = 2.dp
             ) {
                 Row(
                     modifier = Modifier
@@ -71,39 +83,21 @@ fun SearchBar(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (onBackClick != null) {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    } else if (onMenuClick != null) {
-                        IconButton(onClick = onMenuClick) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Menu"
-                            )
-                        }
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
-                        )
-                    }
-                    
+                    LeadingIcon(onBackClick, onMenuClick)
                     Text(
                         text = if (query.isEmpty()) placeholder else query,
-                        color = if (query.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant 
-                               else MaterialTheme.colorScheme.onSurface,
+                        color = if (query.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     if (query.isNotEmpty()) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear search"
-                        )
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear search"
+                            )
+                        }
                     } else if (onProfileClick != null) {
                         IconButton(onClick = onProfileClick) {
                             if (githubProfile != null) {
@@ -130,7 +124,6 @@ fun SearchBar(
                 modifier = Modifier.fillMaxWidth(),
                 shape = CircleShape,
                 tonalElevation = 2.dp,
-                shadowElevation = 2.dp
             ) {
                 CustomTextField(
                     value = query,
@@ -139,29 +132,10 @@ fun SearchBar(
                         .fillMaxWidth()
                         .height(56.dp)
                         .padding(horizontal = 8.dp),
-                    onClick = null,
+                    onClick = { onClick?.invoke() },
                     placeholder = { Text(text = placeholder) },
                     leadingIcon = {
-                        if (onBackClick != null) {
-                            IconButton(onClick = onBackClick) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowBack,
-                                    contentDescription = "Back"
-                                )
-                            }
-                        } else if (onMenuClick != null) {
-                            IconButton(onClick = onMenuClick) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = "Menu"
-                                )
-                            }
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search"
-                            )
-                        }
+                        LeadingIcon(onBackClick, onMenuClick)
                     },
                     trailingIcon = {
                         if (query.isNotEmpty()) {
@@ -194,21 +168,10 @@ fun SearchBar(
                     singleLine = true,
                     shape = CircleShape,
                     colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        unfocusedIndicatorColor = MaterialTheme.colorScheme.surface,
-                        focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                        focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
-                        unfocusedTrailingIconColor = MaterialTheme.colorScheme.primary,
-                        focusedTextColor = MaterialTheme.colorScheme.primary,
-                        unfocusedTextColor = MaterialTheme.colorScheme.primary,
-                        focusedPlaceholderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                        unfocusedPlaceholderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                    ),
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
                     readOnly = readOnly,
-                    outlined = false
                 )
             }
         }
