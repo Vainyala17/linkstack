@@ -103,6 +103,8 @@ android {
 }
 
 dependencies {
+//    implementation(libs.androidx.material3)
+    implementation("androidx.compose.material3:material3:1.3.1")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     
     // Core Android

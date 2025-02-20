@@ -12,11 +12,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 
@@ -46,6 +55,9 @@ fun CustomTextField(
     outlined: Boolean = true,
     onClick: (() -> Unit)? = null
 ) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
     val baseModifier = if (readOnly && onClick != null) {
         // Move the clickable modifier to be the first in the chain
@@ -65,7 +77,7 @@ fun CustomTextField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = baseModifier,
+            modifier = baseModifier.focusRequester(focusRequester),
             enabled = enabled,
             readOnly = readOnly,
             textStyle = textStyle,
@@ -76,19 +88,23 @@ fun CustomTextField(
             supportingText = supportingText,
             isError = isError,
             visualTransformation = visualTransformation,
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
+            keyboardOptions = keyboardOptions.copy(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                }
+            ),
             singleLine = singleLine,
             maxLines = maxLines,
             minLines = minLines,
             interactionSource = interactionSource,
             shape = shape,
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                cursorColor = MaterialTheme.colorScheme.primary,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            colors = TextFieldDefaults.colors(
+//                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = Color.Gray,
+                focusedIndicatorColor = Color.Transparent,
+                cursorColor = MaterialTheme.colorScheme.primary
             )
         )
     } else {
@@ -115,5 +131,9 @@ fun CustomTextField(
             shape = shape,
             colors = colors
         )
+    }
+    LaunchedEffect(focusRequester) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
     }
 }
